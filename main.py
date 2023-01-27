@@ -119,7 +119,7 @@ async def on_ready():
 
                         # Step 2. 문제 이미지 보내기
                         thumbs = driver.find_elements(By.ID, "net.megastudy.qube:id/iv_chat_image")
-                        for i in range(0, len(thumbs)):
+                        for i in range(len(thumbs)):
                             img_num = str(i + 1)
                             file_name = os.path.join("images", f"{current_time}-{img_num}.png")
                             thumbs[i].click()
