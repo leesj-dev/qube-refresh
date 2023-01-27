@@ -4,6 +4,7 @@ import asyncio
 import functools
 from datetime import datetime
 from dotenv import load_dotenv
+from PIL import Image, ImageChops
 from appium import webdriver
 from selenium.webdriver.common.by import By
 from selenium.common.exceptions import NoSuchElementException
@@ -30,6 +31,15 @@ def chk_load():
             driver.find_element(By.ID, "net.megastudy.qube:id/fl_progress")
         except NoSuchElementException:
             break
+
+
+# 이미지 white 여백 제거
+def trim(path):
+    img = Image.open(path).convert("RGB")  # 원래 RGBA임
+    bg = Image.new(img.mode, img.size, (255, 255, 255))
+    diff = ImageChops.difference(img, bg)
+    bbox = ImageChops.add(diff, diff, 2.0, -100).getbbox()
+    img.crop(bbox).save(path)  # 파일 덮어쓰기
 
 
 # blocking function을 non-blocking하게 실행
@@ -105,7 +115,7 @@ async def on_ready():
                         # Step 1. 선점 성공 알림 보내기
                         current_time = datetime.now().strftime("%Y-%m-%d %H:%M:%S.%f")[:-4]
                         print(f"문제 선점 성공 [{current_time}]")
-                        await channel.send(f"새 문제가 왔습니다 [{current_time}]")
+                        await channel.send(f"새로운 문제가 도착했습니다 [{current_time}]")
 
                         # Step 2. 문제 이미지 보내기
                         thumbs = driver.find_elements(By.ID, "net.megastudy.qube:id/iv_chat_image")
@@ -117,6 +127,7 @@ async def on_ready():
                             image = driver.find_element(By.ID, "net.megastudy.qube:id/image")
                             with open(file_name, "wb") as screenshot:
                                 screenshot.write(image.screenshot_as_png)
+                            await run_blocking(trim, file_name)
                             await channel.send(file=discord.File(file_name))
                             driver.find_element(By.ID, "net.megastudy.qube:id/btn_close").click()
                             driver.implicitly_wait(2)
@@ -132,12 +143,11 @@ async def on_ready():
                         # Step 4. 풀이 옵션 선택
                         await channel.send("지금 풀기는 1, 나중에 풀기는 2, 포기는 3을 입력하세요.")
                         while True:  # 제대로 된 input값이 들어올 때까지 반복
-                            proceed = await client.wait_for("message", check=lambda m: m.author.id == USER_ID, timeout=120.0)
-                            print(proceed.content)
+                            proceed = await client.wait_for("message", check=lambda m: m.author.id == USER_ID, timeout=300.0)
 
                             if proceed.content == "1":  # 확인 필요함
                                 await channel.send("*")  # 임시 (just in case)
-                                answer = await client.wait_for("message", check=lambda m: m.author.id == USER_ID, timeout=120.0)
+                                answer = await client.wait_for("message", check=lambda m: m.author.id == USER_ID, timeout=300.0)
                                 driver.find_element(By.ID, "net.megastudy.qube:id/et_input_text").send_keys(answer.content)
                                 driver.find_element(By.ID, "net.megastudy.qube:id/btn_input_send").click()
                                 driver.find_element(By.ID, "net.megastudy.qube:id/btn_explan_complete").click()
