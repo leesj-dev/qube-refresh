@@ -28,7 +28,6 @@ def chk_load():
     while True:
         try:
             driver.find_element(By.ID, "net.megastudy.qube:id/fl_progress")
-
         except NoSuchElementException:
             break
 
@@ -136,7 +135,7 @@ async def on_ready():
                             proceed = await client.wait_for("message", check=lambda m: m.author.id == USER_ID, timeout=120.0)
                             print(proceed.content)
 
-                            if proceed.content == "1":
+                            if proceed.content == "1":  # 확인 필요함
                                 await channel.send("*")  # 임시 (just in case)
                                 answer = await client.wait_for("message", check=lambda m: m.author.id == USER_ID, timeout=120.0)
                                 driver.find_element(By.ID, "net.megastudy.qube:id/et_input_text").send_keys(answer.content)
@@ -144,14 +143,15 @@ async def on_ready():
                                 driver.find_element(By.ID, "net.megastudy.qube:id/btn_explan_complete").click()
                                 break
 
-                            elif proceed.content == "2":
+                            elif proceed.content == "2":  # 이상 없음
                                 driver.terminate_app("net.megastudy.qube")  # 앱 재실행 (다른 문제를 계속 찾기 위함)
                                 driver.activate_app("net.megastudy.qube")
-                                await asyncio.sleep(5)  # 앱이 재시작될 동안 기다림
                                 solved = len(questions)
+                                await asyncio.sleep(5)  # 앱이 재시작될 동안 기다림
+                                await run_blocking(chk_load)  # solved = 0 되는 것 방지
                                 break
 
-                            elif proceed.content == "3":
+                            elif proceed.content == "3":  # 이상 없음
                                 driver.find_element(By.ID, "net.megastudy.qube:id/btn_explan_cancel").click()
                                 driver.implicitly_wait(1)
                                 driver.find_element(By.ID, "net.megastudy.qube:id/bt_positive").click()
