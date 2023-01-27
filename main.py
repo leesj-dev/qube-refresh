@@ -158,7 +158,6 @@ async def on_ready():
                                 driver.activate_app("net.megastudy.qube")
                                 solved = len(questions)
                                 await asyncio.sleep(5)  # 앱이 재시작될 동안 기다림
-                                await run_blocking(chk_load)  # solved = 0 되는 것 방지
                                 break
 
                             elif proceed.content == "3":  # 이상 없음
@@ -184,9 +183,9 @@ async def on_ready():
                 driver.find_element(By.ID, "net.megastudy.qube:id/home_main_top_refresh").click()
                 await run_blocking(chk_load)
 
-            # 모든 문제가 해결된 경우, 새로고침 시도가 되지 않음
+            # 예외처리(허용)
             except NoSuchElementException:
-                solved = 0
+                pass
 
 
 if __name__ == "__main__":
