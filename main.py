@@ -95,20 +95,21 @@ async def on_ready():
                         questions[-i].click()
                         break
 
+                # 새로고침 중인 상태에서 클릭 시, 로딩이 모두 완료된 후에 하도록 함
+                await run_blocking(chk_load)
+
                 # Case 2-2-1. 다른 마스터가 답변 중일 때
                 try:
                     driver.find_element(By.ID, "net.megastudy.qube:id/bt_positive").click()
                     current_time = datetime.now().strftime("%Y-%m-%d %H:%M:%S.%f")[:-4]
                     print(f"문제 선점 실패 [{current_time}]")
                     await asyncio.sleep(3)
-                    await run_blocking(chk_load)
 
                 # Case 2-2-2. 다른 마스터가 답변 중이지 않을 때
                 except NoSuchElementException:
                     # Case 2-2-2-1. 내가 이미 답변한 문제인지 확인
                     try:
                         driver.find_element(By.ID, "net.megastudy.qube:id/ibtn_close").click()
-                        await run_blocking(chk_load)
 
                     # Case 2-2-2-2. 내가 답변하지 않은 문제라면
                     except NoSuchElementException:
@@ -130,10 +131,8 @@ async def on_ready():
                             await run_blocking(trim, file_name)
                             await channel.send(file=discord.File(file_name))
                             driver.find_element(By.ID, "net.megastudy.qube:id/btn_close").click()
-                            driver.implicitly_wait(2)
 
                         # Step 3. 문제 본문 보내기
-                        await asyncio.sleep(1)
                         messages = [
                             item.get_attribute("text")
                             for item in driver.find_elements(By.ID, "net.megastudy.qube:id/tv_chat_text")
@@ -146,7 +145,7 @@ async def on_ready():
                             proceed = await client.wait_for("message", check=lambda m: m.author.id == USER_ID, timeout=300.0)
 
                             if proceed.content == "1":  # 확인 필요함
-                                await channel.send("*")  # 임시 (just in case)
+                                await channel.send("*")  # 임시 (just in case)  # 보내실 답을 입력해주세요.
                                 answer = await client.wait_for("message", check=lambda m: m.author.id == USER_ID, timeout=300.0)
                                 driver.find_element(By.ID, "net.megastudy.qube:id/et_input_text").send_keys(answer.content)
                                 driver.find_element(By.ID, "net.megastudy.qube:id/btn_input_send").click()
@@ -162,7 +161,6 @@ async def on_ready():
 
                             elif proceed.content == "3":  # 이상 없음
                                 driver.find_element(By.ID, "net.megastudy.qube:id/btn_explan_cancel").click()
-                                driver.implicitly_wait(1)
                                 driver.find_element(By.ID, "net.megastudy.qube:id/bt_positive").click()
                                 break
 
@@ -172,20 +170,27 @@ async def on_ready():
             # Case 2-3. 그대로라면
             elif len(questions) == solved:
                 current_time = datetime.now().strftime("%Y-%m-%d %H:%M:%S.%f")[:-4]
-                print(f"문제 없음 [{current_time}]")
+                await run_blocking(print, f"문제 없음 [{current_time}]")  # heartbeat block 방지하기 위해 run_blocking 처리
 
             # Case 2-4. 해결 중인 문제가 줄어들었을 때
             else:
                 solved = len(questions)
+                await channel.send("Qube 앱에 접속하여 해시태그를 입력해주세요.")
 
-            # 새로고침 시도
+            driver.implicitly_wait(0)
+
+            # 새로고침 중이라면, pass
             try:
-                driver.find_element(By.ID, "net.megastudy.qube:id/home_main_top_refresh").click()
-                await run_blocking(chk_load)
+                driver.find_element(By.ID, "net.megastudy.qube:id/fl_progress")
 
-            # 예외처리(허용)
+            # 새로고침 중이 아니라면 새로고침 하기
             except NoSuchElementException:
-                pass
+                try:
+                    driver.find_element(By.ID, "net.megastudy.qube:id/home_main_top_refresh").click()
+
+                # 기타 상황에 대한 예외처리
+                except NoSuchElementException:
+                    pass
 
 
 if __name__ == "__main__":
