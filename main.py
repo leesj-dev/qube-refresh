@@ -1,4 +1,6 @@
 import os
+import sys
+import logging
 import discord
 import asyncio
 import functools
@@ -24,23 +26,12 @@ desired_capabilities = {
 client = discord.Client(intents=discord.Intents.all())
 driver = webdriver.Remote("http://127.0.0.1:4723/wd/hub", desired_capabilities)
 
-# 로딩 중인지 확인 (*blocking function)
-def chk_load():
-    while True:
-        try:
-            driver.find_element(By.ID, "net.megastudy.qube:id/fl_progress")
-        except NoSuchElementException:
-            break
-
-
-# 이미지 white 여백 제거 (*blocking function)
-def trim(path):
-    img = Image.open(path).convert("RGB")  # 원래 RGBA임
-    bg = Image.new(img.mode, img.size, (255, 255, 255))
-    diff = ImageChops.difference(img, bg)
-    bbox = ImageChops.add(diff, diff, 2.0, -100).getbbox()
-    img.crop(bbox).save(path)  # 파일 덮어쓰기
-
+logging.basicConfig(
+    handlers = [logging.StreamHandler(sys.stdout), logging.FileHandler("run.log")],
+    format = "%(asctime)s.%(msecs)03d %(message)s",
+    datefmt = "%Y-%m-%d %H:%M:%S",
+    level = logging.INFO
+)
 
 # blocking function을 non-blocking하게 실행
 async def run_blocking(blocking_func, *args, **kwargs):
@@ -51,7 +42,7 @@ async def run_blocking(blocking_func, *args, **kwargs):
 @client.event
 async def on_ready():
     channel = client.get_channel(CHANNEL_ID)
-    await run_blocking(print, f"{client.user} has connected to Discord")
+    await run_blocking(logging.info, f"{client.user} has connected to Discord")
     solved = None  # 처음 실행 시에는 None으로 할당
 
     while True:
@@ -59,11 +50,16 @@ async def on_ready():
         if solved is None or solved == 0:
             try:
                 driver.find_element(By.XPATH, COMMON_PATH + "/android.view.ViewGroup/android.widget.LinearLayout/android.widget.TextView[1]")
-                current_time = datetime.now().strftime("%Y-%m-%d %H:%M:%S.%f")[:-4]
-                await run_blocking(print, f"문제 없음 [{current_time}]")
+                await run_blocking(logging.info, f"문제 없음")
                 solved = 0
-                driver.swipe(500, 500, 500, 1000, 100)
-                await run_blocking(chk_load)
+
+                # 새로고침 중이라면, pass
+                try:
+                    driver.find_element(By.ID, "net.megastudy.qube:id/fl_progress")
+
+                # 새로고침 중이 아니라면 새로고침 하기
+                except NoSuchElementException:
+                    driver.swipe(500, 500, 500, 1000, 100)
 
             # 한 문제 이상이 새로 들어왔을 때 -> Case 2
             except NoSuchElementException:
@@ -83,7 +79,6 @@ async def on_ready():
         else:
             # Case 2-2. 새로운 문제가 들어왔을 때
             if len(questions) > solved:
-
                 # 가장 뒤에서부터 신규 문제 탐색
                 for i in range(1, len(questions) + 1):
                     # 문제가 해결되었는지 점검
@@ -96,13 +91,16 @@ async def on_ready():
                         break
 
                 # 새로고침 중인 상태에서 클릭 시, 로딩이 모두 완료된 후에 하도록 함
-                await run_blocking(chk_load)
+                while True:
+                    try:
+                        driver.find_element(By.ID, "net.megastudy.qube:id/fl_progress")
+                    except NoSuchElementException:
+                        break
 
                 # Case 2-2-1. 다른 마스터가 답변 중일 때
                 try:
                     driver.find_element(By.ID, "net.megastudy.qube:id/bt_positive").click()
-                    current_time = datetime.now().strftime("%Y-%m-%d %H:%M:%S.%f")[:-4]
-                    await run_blocking(print, f"문제 선점 실패 [{current_time}]")
+                    await run_blocking(logging.info, f"문제 선점 실패")
                     await asyncio.sleep(3)
 
                 # Case 2-2-2. 다른 마스터가 답변 중이지 않을 때
@@ -116,8 +114,8 @@ async def on_ready():
                         driver.implicitly_wait(2)
 
                         # Step 1. 선점 성공 알림 보내기
-                        current_time = datetime.now().strftime("%Y-%m-%d %H:%M:%S.%f")[:-4]
-                        await run_blocking(print, f"문제 선점 성공 [{current_time}]")
+                        await run_blocking(logging.info, f"문제 선점 성공")
+                        current_time = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
                         await channel.send(f"새로운 문제가 도착했습니다 [{current_time}]")
 
                         # Step 2. 문제 이미지 보내기
@@ -129,7 +127,14 @@ async def on_ready():
                             image = driver.find_element(By.ID, "net.megastudy.qube:id/image")
                             with open(file_name, "wb") as screenshot:
                                 screenshot.write(image.screenshot_as_png)
-                            await run_blocking(trim, file_name)
+
+                            # 스크린샷의 white 여백 제거
+                            img = Image.open(file_name).convert("RGB")  # 원래 RGBA임
+                            bg = Image.new(img.mode, img.size, (255, 255, 255))
+                            diff = ImageChops.difference(img, bg)
+                            bbox = ImageChops.add(diff, diff, 2.0, -100).getbbox()
+                            img.crop(bbox).save(file_name)  # 파일 덮어쓰기
+
                             await channel.send(file=discord.File(file_name))
                             driver.find_element(By.ID, "net.megastudy.qube:id/btn_close").click()
 
@@ -149,17 +154,18 @@ async def on_ready():
                                 await channel.send("*")  # 임시 (just in case)  # 보내실 답을 입력해주세요.
                                 answer = await client.wait_for("message", check=lambda m: m.author.id == USER_ID, timeout=300.0)
                                 driver.find_element(By.ID, "net.megastudy.qube:id/et_input_text").send_keys(answer.content)
+                                await asyncio.sleep(1)
                                 driver.find_element(By.ID, "net.megastudy.qube:id/btn_input_send").click()
                                 driver.find_element(By.ID, "net.megastudy.qube:id/btn_explan_complete").click()
                                 break
 
-                            elif proceed.content == "2":  # 이상 없음
+                            elif proceed.content == "2":
                                 driver.terminate_app("net.megastudy.qube")  # 앱 재실행 (다른 문제를 계속 찾기 위함)
                                 driver.activate_app("net.megastudy.qube")
                                 solved = len(questions)
                                 await asyncio.sleep(5)  # 앱이 재시작될 동안 기다림
 
-                                # 답변 완료 후 해시태그 입력 팝업창이 뜰 경우
+                                # 해결 완료 후 해시태그 입력 팝업창이 뜰 경우
                                 try:
                                     driver.find_element(By.ID, "net.megastudy.qube:id/bt_close").click()
                                 except:
@@ -167,7 +173,7 @@ async def on_ready():
 
                                 break
 
-                            elif proceed.content == "3":  # 이상 없음
+                            elif proceed.content == "3":
                                 driver.find_element(By.ID, "net.megastudy.qube:id/btn_explan_cancel").click()
                                 driver.find_element(By.ID, "net.megastudy.qube:id/bt_positive").click()
                                 break
@@ -177,8 +183,7 @@ async def on_ready():
 
             # Case 2-3. 그대로라면
             elif len(questions) == solved:
-                current_time = datetime.now().strftime("%Y-%m-%d %H:%M:%S.%f")[:-4]
-                await run_blocking(print, f"문제 없음 [{current_time}]")  # heartbeat block 방지하기 위해 run_blocking 처리
+                await run_blocking(logging.info, f"문제 없음")  # heartbeat block 방지하기 위해 run_blocking 처리
 
             # Case 2-4. 해결 중인 문제가 줄어들었을 때
             else:
