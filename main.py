@@ -33,7 +33,7 @@ def chk_load():
             break
 
 
-# 이미지 white 여백 제거
+# 이미지 white 여백 제거 (*blocking function)
 def trim(path):
     img = Image.open(path).convert("RGB")  # 원래 RGBA임
     bg = Image.new(img.mode, img.size, (255, 255, 255))
@@ -51,7 +51,7 @@ async def run_blocking(blocking_func, *args, **kwargs):
 @client.event
 async def on_ready():
     channel = client.get_channel(CHANNEL_ID)
-    print(f"{client.user} has connected to Discord")
+    await run_blocking(print, f"{client.user} has connected to Discord")
     solved = None  # 처음 실행 시에는 None으로 할당
 
     while True:
@@ -60,7 +60,7 @@ async def on_ready():
             try:
                 driver.find_element(By.XPATH, COMMON_PATH + "/android.view.ViewGroup/android.widget.LinearLayout/android.widget.TextView[1]")
                 current_time = datetime.now().strftime("%Y-%m-%d %H:%M:%S.%f")[:-4]
-                print(f"문제 없음 [{current_time}]")
+                await run_blocking(print, f"문제 없음 [{current_time}]")
                 solved = 0
                 driver.swipe(500, 500, 500, 1000, 100)
                 await run_blocking(chk_load)
@@ -102,7 +102,7 @@ async def on_ready():
                 try:
                     driver.find_element(By.ID, "net.megastudy.qube:id/bt_positive").click()
                     current_time = datetime.now().strftime("%Y-%m-%d %H:%M:%S.%f")[:-4]
-                    print(f"문제 선점 실패 [{current_time}]")
+                    await run_blocking(print, f"문제 선점 실패 [{current_time}]")
                     await asyncio.sleep(3)
 
                 # Case 2-2-2. 다른 마스터가 답변 중이지 않을 때
@@ -113,9 +113,11 @@ async def on_ready():
 
                     # Case 2-2-2-2. 내가 답변하지 않은 문제라면
                     except NoSuchElementException:
+                        driver.implicitly_wait(2)
+
                         # Step 1. 선점 성공 알림 보내기
                         current_time = datetime.now().strftime("%Y-%m-%d %H:%M:%S.%f")[:-4]
-                        print(f"문제 선점 성공 [{current_time}]")
+                        await run_blocking(print, f"문제 선점 성공 [{current_time}]")
                         await channel.send(f"새로운 문제가 도착했습니다 [{current_time}]")
 
                         # Step 2. 문제 이미지 보내기
@@ -124,7 +126,6 @@ async def on_ready():
                             img_num = str(i + 1)
                             file_name = os.path.join("images", f"{current_time}-{img_num}.png")
                             thumbs[i].click()
-                            driver.implicitly_wait(2)
                             image = driver.find_element(By.ID, "net.megastudy.qube:id/image")
                             with open(file_name, "wb") as screenshot:
                                 screenshot.write(image.screenshot_as_png)
@@ -157,6 +158,13 @@ async def on_ready():
                                 driver.activate_app("net.megastudy.qube")
                                 solved = len(questions)
                                 await asyncio.sleep(5)  # 앱이 재시작될 동안 기다림
+
+                                # 답변 완료 후 해시태그 입력 팝업창이 뜰 경우
+                                try:
+                                    driver.find_element(By.ID, "net.megastudy.qube:id/bt_close").click()
+                                except:
+                                    pass
+
                                 break
 
                             elif proceed.content == "3":  # 이상 없음
