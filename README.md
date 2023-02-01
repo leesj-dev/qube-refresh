@@ -34,6 +34,11 @@ CHANNEL_ID = (아까 복사한 채널 ID)
 USER_ID = (아까 복사한 유저 ID)
 ```
 
+10. 4단계의 `Bot` 섹션으로 다시 돌아가서, 밑으로 스크롤하여 `Privileged Gateway Intents` 부분에 해당하는 3가지를 모두 활성화해줍니다.
+* Presence Intent
+* Server Members Intent
+* Message Content Intent
+
 ### Step 3. 코드 실행
 Qube 앱을 실행하고, Appium Server를 동작시킨 채로 `main.py`를 실행합니다. 이때 가급적이면 Appium Inspector는 코드 실행 중 동시에 실행하지 않는 것이 좋습니다.
 
