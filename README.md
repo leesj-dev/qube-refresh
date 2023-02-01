@@ -16,8 +16,11 @@
 편의상 Oracle 서버의 direct download 링크를 걸어두겠습니다. 이 글을 작성하는 시점 기준으로 8u331 버전입니다.
 
 [JDK 8 Windows](https://javadl.oracle.com/webapps/download/GetFile/1.8.0_331-b09/165374ff4ea84ef0bbd821706e29b123/windows-i586/jdk-8u331-windows-x64.exe)
+
 [JDK 8 Mac](https://javadl.oracle.com/webapps/download/GetFile/1.8.0_331-b09/165374ff4ea84ef0bbd821706e29b123/unix-i586/jdk-8u331-macosx-x64.dmg)
+
 [JRE 8 Windows](https://javadl.oracle.com/webapps/download/AutoDL?BundleId=246264_165374ff4ea84ef0bbd821706e29b123)
+
 [JRE 8 Mac](https://javadl.oracle.com/webapps/download/AutoDL?BundleId=246255_165374ff4ea84ef0bbd821706e29b123)
 
 6. [Appium Server GUI](https://github.com/appium/appium-desktop/releases/tag/v1.22.3-4)를 설치한 뒤 실행합니다. Host는 `127.0.0.1`로, Port는 `4723`로 설정합니다.
