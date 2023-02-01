@@ -54,5 +54,4 @@ Qube 앱을 실행하고, Appium Server를 동작시킨 채로 `main.py`를 실�
 ├── run.log
 ├── README.md
 └── main.py
-
 ```
