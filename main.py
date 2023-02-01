@@ -195,10 +195,8 @@ async def on_ready():
                             await run_blocking(logging.info, "1번 선택")
                             await channel.send("*")  # 임시 (just in case)  # 보낼 답을 입력해주세요.
                             answer = await client.wait_for("message", check=lambda m: m.author.id == USER_ID, timeout=600.0)
-                            await run_blocking(logging.info, "풀이 수신됨")
+                            await run_blocking(logging.info, "풀이 수신됨: " + answer.content)
                             driver.find_element(By.ID, "net.megastudy.qube:id/et_input_text").send_keys(answer.content)
-                            await run_blocking(logging.info, "내용 입력됨")
-                            await asyncio.sleep(1)
                             driver.find_element(By.ID, "net.megastudy.qube:id/btn_input_send").click()
                             await asyncio.sleep(1)
                             driver.find_element(By.ID, "net.megastudy.qube:id/btn_explan_complete").click()
@@ -208,7 +206,6 @@ async def on_ready():
                         elif proceed.content == "2":
                             await run_blocking(logging.info, "2번 선택")
                             driver.terminate_app("net.megastudy.qube")  # 앱 재실행 (다른 문제를 계속 찾기 위함)
-                            await run_blocking(logging.info, "앱 종료됨")
                             driver.activate_app("net.megastudy.qube")
                             await run_blocking(logging.info, "앱 재실행 중")
                             solved = len(questions)
@@ -217,7 +214,7 @@ async def on_ready():
                             # 해결 완료 후 해시태그 입력 팝업창이 뜰 경우
                             try:
                                 driver.find_element(By.ID, "net.megastudy.qube:id/bt_close").click()
-                                await channel.send("Qube 앱에 접속하여 해시태그를 입력해주세요.")
+                                await channel.send("앱에 접속하여 해시태그를 입력해주세요.")
                                 await run_blocking(logging.info, "해시태그 팝업창 뜸")
 
                             except NoSuchElementException:
@@ -234,7 +231,7 @@ async def on_ready():
                             break
 
                         else:
-                            await run_blocking(logging.warning, "잘못된 입력")
+                            await run_blocking(logging.warning, "잘못된 입력: " + proceed.content)
                             await channel.send("다시 입력해주세요.")
 
                     driver.implicitly_wait(0)
