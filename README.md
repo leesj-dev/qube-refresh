@@ -19,7 +19,7 @@ git clone https://github.com/leesj-dev/qube-refresh.git
 DISCORD_TOKEN = (아까 복사한 토큰)
 ```
 
-1. 좌측에 OAuth2의 URL Generator를 클릭한 후 Scopes의 `bot`을 체크하고, URL을 복사합니다. URL을 복사하여 주소창에 넣으면 디스코드 어느 서버에 초대할지 선택하라고 뜹니다. 처음에 만들어뒀던 서버를 선택합니다.
+6. 좌측에 OAuth2의 URL Generator를 클릭한 후 Scopes의 `bot`을 체크하고, URL을 복사합니다. URL을 복사하여 주소창에 넣으면 디스코드 어느 서버에 초대할지 선택하라고 뜹니다. 처음에 만들어뒀던 서버를 선택합니다.
 
 3 ~ 6단계까지의 자세한 내용은 이 [블로그](https://scvtwo.tistory.com/196)를 참고하세요.
 
