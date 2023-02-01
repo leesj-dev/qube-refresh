@@ -12,14 +12,14 @@ git clone https://github.com/leesj-dev/qube-refresh.git
 
 3. [Discord Developer Portal](https://discord.com/developers/applications)에 들어가서 로그인하고 `New Application`을 누르고, 새로운 애플리케이션을 만들어줍니다.
 
-4. 좌측에 Bot을 클릭하여 봇을 생성하고, `Reset Token` 버튼을 눌러 토큰을 생성합니다. 이후 `Copy` 버튼을 눌러줍니다.
+4. 좌측에 `Bot`을 클릭하여 봇을 생성하고, `Reset Token` 버튼을 눌러 토큰을 생성합니다. 이후 `Copy` 버튼을 눌러줍니다.
 
 5. 디렉토리에 `.env` 파일을 생성한 후 다음 줄을 추가해줍니다.
 ```
 DISCORD_TOKEN = (아까 복사한 토큰)
 ```
 
-6. 좌측에 OAuth2의 URL Generator를 클릭한 후 Scopes의 `bot`을 체크하고, URL을 복사합니다. URL을 복사하여 주소창에 넣으면 디스코드 어느 서버에 초대할지 선택하라고 뜹니다. 처음에 만들어뒀던 서버를 선택합니다.
+6. 좌측에 `OAuth2`의 `URL Generator`를 클릭한 후 Scopes의 `bot`을 체크하고, URL을 복사합니다. URL을 복사하여 주소창에 넣으면 디스코드 어느 서버에 초대할지 선택하라고 뜹니다. 처음에 만들어뒀던 서버를 선택합니다.
 
 3 ~ 6단계까지의 자세한 내용은 이 [블로그](https://scvtwo.tistory.com/196)를 참고하세요.
 
