@@ -2,13 +2,13 @@
 ## Step 1. Android Studio & Appium 설치
 ### 1. Android Studio
 최신 버전의 [Android Studio](https://developer.android.com/studio)를 설치합니다.
-프로그램을 실행한 후, More Actions을 눌러 SDK Manager로 가서 Android 13.0 (Tiramisu)을 다운로드합니다. 화면 상단에 보면 `Android SDK Location`이 있는데, 나중에 이 경로를 쓸 것이니 미리 복사해두기 바랍니다. 일반적으로 아래와 같습니다.
+프로그램을 실행한 후, `More Actions`을 눌러 `SDK Manager`로 가서 Android 13.0 (Tiramisu)을 다운로드합니다. 화면 상단에 보면 `Android SDK Location`이 있는데, 나중에 이 경로를 쓸 것이니 미리 복사해두기 바랍니다. 일반적으로 아래와 같습니다.
 * Windows: `C:\Users\[사용자 이름]\AppData\Local\Android\SDK`
 * Mac: `/Users/[사용자 이름]/Library/Android/sdk`
 ![android-automation-1.png](https://leesj.me/static/e37b2060e5aef35541135b05b5f0802a/89066/android-automation-1.png)
 
-다시 처음화면으로 돌아가 More Actions의 Virtual Device Manager로 갑니다. Create Device를 누르고 Pixel 4, Android 13.0 (Tiramisu)를 선택합니다. 이후 플레이 버튼을 누르면 가상 안드로이드 디바이스가 실행됩니다.
-![android-automation-2.png]([android-automation-2.png](https://leesj.me/static/64dbe5033f6a33c361cca6fec1850024/89066/android-automation-2.png)
+다시 처음화면으로 돌아가 `More Actions`의 `Virtual Device Manager`로 갑니다. `Create Device`를 누르고 Pixel 4, Android 13.0 (Tiramisu)를 선택합니다. 이후 플레이 버튼을 누르면 가상 안드로이드 디바이스가 실행됩니다.
+![android-automation-2.png](https://leesj.me/static/64dbe5033f6a33c361cca6fec1850024/89066/android-automation-2.png)
 
 ### 2. Java SE 8
 기존에 Java 8을 쓰는 사람은 건너뛰면 됩니다. [JDK, JRE 8 Oracle 페이지](https://www.oracle.com/kr/java/technologies/javase/javase8u211-later-archive-downloads.html)에 들어가서 JDK(Java Development Kit)와 JRE(Java Runtime Environment)를 설치합니다.
@@ -23,11 +23,12 @@ Oracle 서버의 direct download 링크를 걸어두겠습니다.
 [JRE 8 Mac](https://javadl.oracle.com/webapps/download/AutoDL?BundleId=246255_165374ff4ea84ef0bbd821706e29b123)
 
 ### 3. Appium Server GUI
-[Appium Server GUI](https://github.com/appium/appium-desktop/releases/tag/v1.22.3-4)를 설치한 뒤 실행합니다. Host는 `127.0.0.1`로, Port는 `4723`로 설정합니다. Edit Configurations를 누르면 환경 변수를 설정하는 창이 뜹니다.
-![android-automation-3.png]((https://leesj.me/static/ce4be1d302f445a280c67332cdcda2c8/d853e/android-automation-3.png)
-ANDROID_HOME에는 앞에서 복사했던 `Android SDK Location`를 넣어주고, JAVA_HOME에는 설치한 JDK의 경로를 넣어줍니다. 일반적으로 아래와 같습니다.
+[Appium Server GUI](https://github.com/appium/appium-desktop/releases/tag/v1.22.3-4)를 설치한 뒤 실행합니다. Host는 `127.0.0.1`로, Port는 `4723`로 설정합니다. `Edit Configurations`를 누르면 환경 변수를 설정하는 창이 뜹니다.
+![android-automation-3.png](https://leesj.me/static/ce4be1d302f445a280c67332cdcda2c8/d853e/android-automation-3.png)
+`ANDROID_HOME`에는 앞에서 복사했던 `Android SDK Location`를 넣어주고, `JAVA_HOME`에는 설치한 JDK의 경로를 넣어줍니다. 일반적으로 아래와 같습니다.
 * Windows: `C:\Program Files\Java\jdk-[버전명]`
 * Mac: `/Library/Java/JavaVirtualMachines/jdk[버전명].jdk`
+
 Mac의 경우, Finder > Go > Go To Folder로 가서 `/Library/Java/JavaVirtualMachines/`을 입력하면 jdk 폴더가 나옵니다.
 다 끝났으면 startServer를 누릅니다.
 
