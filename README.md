@@ -10,6 +10,8 @@ git clone https://github.com/leesj-dev/qube-refresh.git
 
 2. Discord에 로그인한 후 [메인 화면](https://discord.com/channels/@me)에서 서버를 하나 만듭니다.
 
+> 3, 4, 6단계의 자세한 내용은 이 [블로그](https://scvtwo.tistory.com/196)를 참고하세요.
+
 3. [Discord Developer Portal](https://discord.com/developers/applications)에 들어가서 로그인하고 `New Application`을 누르고, 새로운 애플리케이션을 만들어줍니다.
 
 4. 좌측에 `Bot`을 클릭하여 봇을 생성하고, `Reset Token` 버튼을 눌러 토큰을 생성합니다. 이후 `Copy` 버튼을 눌러줍니다.
@@ -21,20 +23,19 @@ DISCORD_TOKEN = (아까 복사한 토큰)
 
 6. 좌측에 `OAuth2`의 `URL Generator`를 클릭한 후 Scopes의 `bot`을 체크하고, URL을 복사합니다. URL을 복사하여 주소창에 넣으면 디스코드 어느 서버에 초대할지 선택하라고 뜹니다. 처음에 만들어뒀던 서버를 선택합니다.
 
-3 ~ 6단계까지의 자세한 내용은 이 [블로그](https://scvtwo.tistory.com/196)를 참고하세요.
-
 7. 다시 [메인 화면](https://discord.com/channels/@me)으로 돌아가서 `사용자 설정`을 눌러줍니다. `고급`으로 들어가서 `개발자 모드`를 활성화시켜줍니다.
 
 8. 메인화면에서 자신의 디스코드 서버를 선택한 후 채팅 채널을 하나 만듧니다. 이후 그 채널을 우클릭하고 `ID 복사하기` 버튼을 눌러주고 `.env` 파일에 다음 줄을 추가해줍니다.
 ```
 CHANNEL_ID = (아까 복사한 채널 ID)
 ```
+
 9. 해당 채널에 아무 메세지나 보냅니다. 방금 보낸 자신의 프로필 이미지를 우클릭하고 `ID 복사하기` 버튼을 눌러주고 `.env` 파일에 다음 줄을 추가해줍니다.
 ```
 USER_ID = (아까 복사한 유저 ID)
 ```
 
-10. 4단계의 `Bot` 섹션으로 다시 돌아가서, 밑으로 스크롤하여 `Privileged Gateway Intents` 부분에 해당하는 3가지를 모두 활성화해줍니다.
+10.  4단계의 `Bot` 섹션으로 다시 돌아가서, 밑으로 스크롤하여 `Privileged Gateway Intents` 부분에 해당하는 3가지를 모두 활성화해줍니다.
 * Presence Intent
 * Server Members Intent
 * Message Content Intent
