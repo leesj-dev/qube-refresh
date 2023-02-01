@@ -40,7 +40,7 @@ USER_ID = (아까 복사한 유저 ID)
 * Server Members Intent
 * Message Content Intent
 
-### Step 3. 코드 실행
+## Step 3. 코드 실행
 Qube 앱을 실행하고, Appium Server를 동작시킨 채로 `main.py`를 실행합니다. 이때 가급적이면 Appium Inspector는 코드 실행 중 동시에 실행하지 않는 것이 좋습니다.
 
 코드가 정상적으로 실행된다면, 다음과 같은 파일 트리 구조가 형성될 것입니다:
