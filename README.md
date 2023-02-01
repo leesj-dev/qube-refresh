@@ -10,9 +10,9 @@ git clone https://github.com/leesj-dev/qube-refresh.git
 
 2. Discord에 로그인한 후 [메인 화면](https://discord.com/channels/@me)에서 서버를 하나 만듭니다.
 
-> 3, 4, 6단계의 자세한 내용은 이 [블로그](https://scvtwo.tistory.com/196)를 참고하세요.
-
 3. [Discord Developer Portal](https://discord.com/developers/applications)에 들어가서 로그인하고 `New Application`을 누르고, 새로운 애플리케이션을 만들어줍니다.
+
+> 3, 4, 6단계의 자세한 내용은 이 [블로그](https://scvtwo.tistory.com/196)를 참고하세요.
 
 4. 좌측에 `Bot`을 클릭하여 봇을 생성하고, `Reset Token` 버튼을 눌러 토큰을 생성합니다. 이후 `Copy` 버튼을 눌러줍니다.
 
@@ -35,7 +35,7 @@ CHANNEL_ID = (아까 복사한 채널 ID)
 USER_ID = (아까 복사한 유저 ID)
 ```
 
-10.  4단계의 `Bot` 섹션으로 다시 돌아가서, 밑으로 스크롤하여 `Privileged Gateway Intents` 부분에 해당하는 3가지를 모두 활성화해줍니다.
+10. 4단계의 `Bot` 섹션으로 다시 돌아가서, 밑으로 스크롤하여 `Privileged Gateway Intents` 부분에 해당하는 3가지를 모두 활성화해줍니다.
 * Presence Intent
 * Server Members Intent
 * Message Content Intent
