@@ -12,16 +12,12 @@
 4. 플레이 버튼을 누르면 가상 안드로이드 디바이스가 실행됩니다.
 ![android-automation-2.png](https://leesj.me/static/64dbe5033f6a33c361cca6fec1850024/89066/android-automation-2.png)
 
-5. 기존에 Java 8가 설치되어 있는 사람은 이 단계를 건너뛰면 됩니다. [JDK, JRE 8 Oracle 페이지](https://www.oracle.com/kr/java/technologies/javase/javase8u211-later-archive-downloads.html)에 들어가서 JDK(Java Development Kit)와 JRE(Java Runtime Environment)를 설치합니다.
+5. 기존에 Java 8가 설치되어 있는 사람은 이 단계를 건너뛰면 됩니다. [JDK 8 Oracle 페이지](https://www.oracle.com/kr/java/technologies/javase/javase8u211-later-archive-downloads.html)에 들어가서 JDK(Java Development Kit)를 설치합니다.
 편의상 Oracle 서버의 direct download 링크를 걸어두겠습니다. 이 글을 작성하는 시점 기준으로 8u331 버전입니다.
 
 [JDK 8 Windows](https://javadl.oracle.com/webapps/download/GetFile/1.8.0_331-b09/165374ff4ea84ef0bbd821706e29b123/windows-i586/jdk-8u331-windows-x64.exe)
 
 [JDK 8 Mac](https://javadl.oracle.com/webapps/download/GetFile/1.8.0_331-b09/165374ff4ea84ef0bbd821706e29b123/unix-i586/jdk-8u331-macosx-x64.dmg)
-
-[JRE 8 Windows](https://javadl.oracle.com/webapps/download/AutoDL?BundleId=246264_165374ff4ea84ef0bbd821706e29b123)
-
-[JRE 8 Mac](https://javadl.oracle.com/webapps/download/AutoDL?BundleId=246255_165374ff4ea84ef0bbd821706e29b123)
 
 6. [Appium Server GUI](https://github.com/appium/appium-desktop/releases/tag/v1.22.3-4)를 설치한 뒤 실행합니다. Host는 `127.0.0.1`로, Port는 `4723`로 설정합니다.
 
@@ -78,7 +74,6 @@ USER_ID = (아까 복사한 유저 ID)
 ## Step 3. 코드 실행
 1. Terminal 혹은 Command Prompt에 아래를 입력합니다.
 * `pip install Appium-Python-Client` : Appium의 파이썬 클라이언트를 설치합니다.
-* `pip install selenium` : selenium의 여러 함수(By 등)를 사용하기 위해 설치합니다.
 
 2. Qube 앱과 Appium Server를 실행시킨 채로 `main.py`를 실행합니다.
 
