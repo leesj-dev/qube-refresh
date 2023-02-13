@@ -72,8 +72,8 @@ USER_ID = (아까 복사한 유저 ID)
 * Message Content Intent
 
 ## Step 3. 코드 실행
-1. Terminal 혹은 Command Prompt에 아래를 입력합니다.
-* `pip install Appium-Python-Client` : Appium의 파이썬 클라이언트를 설치합니다.
+1. Appium의 파이썬 클라이언트를 설치하기 위해 Terminal 혹은 Command Prompt에 아래를 입력합니다.
+* `pip install Appium-Python-Client`
 
 2. Qube 앱과 Appium Server를 실행시킨 채로 `main.py`를 실행합니다.
 

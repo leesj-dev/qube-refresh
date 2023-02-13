@@ -30,7 +30,7 @@ driver = webdriver.Remote("http://127.0.0.1:4723/wd/hub", desired_capabilities)
 driver.update_settings({"waitForIdleTimeout": 100})  # click delay 문제 해결용
 
 logging.basicConfig(
-    handlers = [logging.StreamHandler(sys.stdout), logging.FileHandler("run.log")],
+    handlers = [logging.StreamHandler(sys.stdout), logging.FileHandler(os.path.join(os.path.dirname(__file__), "run.log"))],
     format = "%(asctime)s.%(msecs)03d %(levelname)s: %(message)s",
     datefmt = "%Y-%m-%d %H:%M:%S",
     level = logging.INFO
@@ -48,6 +48,7 @@ async def on_ready():
     await run_blocking(logging.info, f"{client.user} has connected to Discord")
     solved = None  # 체크표시된 문제 수
     only_special = False  # Special Question만 있고 Qube Question이 비어있는 경우인지
+    toast = False  # Toast Widget이 있는 경우인지
 
     while True:
         stale_exception = False  # StaleElementReferenceException 대응
@@ -145,94 +146,102 @@ async def on_ready():
                         try:
                             driver.find_element(By.XPATH, "/hierarchy/android.widget.Toast")
                             await run_blocking(logging.warning, "문제 선점 실패 (Toast)")
+                            toast = True
+                            break
+
                         except:
                             pass
 
-                    # Step 1. 선점 성공 알림 보내기
-                    await run_blocking(logging.warning, "문제 선점 성공")
-                    current_time = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-                    await channel.send(f"새로운 문제가 도착했습니다 [{current_time}]")
+                    if toast is False:
+                        # Step 1. 선점 성공 알림 보내기
+                        await run_blocking(logging.warning, "문제 선점 성공")
+                        current_time = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+                        await channel.send(f"새로운 문제가 도착했습니다 [{current_time}]")
 
-                    # Step 2. 문제 이미지 보내기
-                    thumbs = driver.find_elements(By.ID, "net.megastudy.qube:id/iv_chat_image")
-                    await run_blocking(logging.info, "이미지 목록 반환 완료")
-                    for i in range(len(thumbs)):
-                        img_num = str(i + 1)
-                        file_name = os.path.join("images", f"{current_time}-{img_num}.png")
-                        thumbs[i].click()
-                        await asyncio.sleep(1)  # 이미지 로딩되기까지 기다림
-                        image = driver.find_element(By.ID, "net.megastudy.qube:id/image")
-                        with open(file_name, "wb") as screenshot:
-                            screenshot.write(image.screenshot_as_png)
+                        # Step 2. 문제 이미지 보내기
+                        thumbs = driver.find_elements(By.ID, "net.megastudy.qube:id/iv_chat_image")
+                        await run_blocking(logging.info, "이미지 목록 반환 완료")
+                        for i in range(len(thumbs)):
+                            img_num = str(i + 1)
+                            thumbs[i].click()
+                            await asyncio.sleep(1)  # 이미지 로딩되기까지 기다림
+                            image = driver.find_element(By.ID, "net.megastudy.qube:id/image")
+                            file_name = os.path.join(os.path.dirname(__file__), "images", f"{current_time}-{img_num}.png")
+                            with open(file_name, "wb") as screenshot:
+                                screenshot.write(image.screenshot_as_png)
 
-                        # 스크린샷의 white 여백 제거
-                        img = Image.open(file_name).convert("RGB")  # 원래 RGBA임
-                        bg = Image.new(img.mode, img.size, (255, 255, 255))
-                        diff = ImageChops.difference(img, bg)
-                        bbox = ImageChops.add(diff, diff, 2.0, -100).getbbox()
-                        img.crop(bbox).save(file_name)  # 파일 덮어쓰기
+                            # 스크린샷의 white 여백 제거
+                            img = Image.open(file_name).convert("RGB")  # 원래 RGBA임
+                            bg = Image.new(img.mode, img.size, (255, 255, 255))
+                            diff = ImageChops.difference(img, bg)
+                            bbox = ImageChops.add(diff, diff, 2.0, -100).getbbox()
+                            img.crop(bbox).save(file_name)  # 파일 덮어쓰기
 
-                        await channel.send(file=discord.File(file_name))
-                        await run_blocking(logging.info, f"총 {len(thumbs)} 중 {img_num}번째 이미지 전송 완료")
-                        driver.find_element(By.ID, "net.megastudy.qube:id/btn_close").click()
+                            await channel.send(file=discord.File(file_name))
+                            await run_blocking(logging.info, f"총 {len(thumbs)} 중 {img_num}번째 이미지 전송 완료")
+                            driver.find_element(By.ID, "net.megastudy.qube:id/btn_close").click()
 
-                    # Step 3. 문제 본문 보내기
-                    messages = [
-                        item.get_attribute("text")
-                        for item in driver.find_elements(By.ID, "net.megastudy.qube:id/tv_chat_text")
-                    ]
+                        # Step 3. 문제 본문 보내기
+                        messages = [
+                            item.get_attribute("text")
+                            for item in driver.find_elements(By.ID, "net.megastudy.qube:id/tv_chat_text")
+                        ]
 
-                    await channel.send("\n".join(messages))
-                    await run_blocking(logging.info, "본문 전송 완료")
+                        await channel.send("\n".join(messages))
+                        await run_blocking(logging.info, "본문 전송 완료")
 
-                    # Step 4. 풀이 옵션 선택
-                    await channel.send("지금 풀기는 1, 나중에 풀기는 2, 포기는 3을 입력하세요.")
-                    await run_blocking(logging.info, "풀이 옵션 전송 완료")
-                    while True:  # 제대로 된 input값이 들어올 때까지 반복
-                        proceed = await client.wait_for("message", check=lambda m: m.author.id == USER_ID, timeout=300.0)
+                        # Step 4. 풀이 옵션 선택
+                        await channel.send("지금 풀기는 1, 나중에 풀기는 2, 포기는 3을 입력하세요.")
+                        await run_blocking(logging.info, "풀이 옵션 전송 완료")
+                        while True:  # 제대로 된 input값이 들어올 때까지 반복
+                            proceed = await client.wait_for("message", check=lambda m: m.author.id == USER_ID, timeout=300.0)
 
-                        if proceed.content == "1":  # 확인 필요함
-                            await run_blocking(logging.info, "1번 선택")
-                            await channel.send("*")  # 임시 (just in case)  # 보낼 답을 입력해주세요.
-                            answer = await client.wait_for("message", check=lambda m: m.author.id == USER_ID, timeout=600.0)
-                            await run_blocking(logging.info, "풀이 수신됨: " + answer.content)
-                            driver.find_element(By.ID, "net.megastudy.qube:id/et_input_text").send_keys(answer.content)
-                            driver.find_element(By.ID, "net.megastudy.qube:id/btn_input_send").click()
-                            await asyncio.sleep(1)
-                            driver.find_element(By.ID, "net.megastudy.qube:id/btn_explan_complete").click()
-                            await run_blocking(logging.info, "답변 완료됨")
-                            break
+                            if proceed.content == "1":  # 확인 필요함
+                                await run_blocking(logging.info, "1번 선택")
+                                await channel.send("보낼 답을 입력해주세요.")
+                                answer = await client.wait_for("message", check=lambda m: m.author.id == USER_ID, timeout=600.0)
+                                await run_blocking(logging.info, "풀이 수신됨: " + answer.content)
+                                driver.find_element(By.ID, "net.megastudy.qube:id/et_input_text").send_keys(answer.content)
+                                driver.find_element(By.ID, "net.megastudy.qube:id/btn_input_send").click()
+                                await asyncio.sleep(1)  # 없으면 안 돌아감, 삭제하지 말 것
+                                driver.find_element(By.ID, "net.megastudy.qube:id/btn_explan_complete").click()
+                                driver.find_element(By.ID, "net.megastudy.qube:id/bt_positive").click()
+                                driver.find_element(By.ID, "net.megastudy.qube:id/ibtn_close").click()
+                                await run_blocking(logging.info, "답변 완료됨")
+                                solved = len(questions)
+                                await asyncio.sleep(4)  # 내가 답변한 걸 다시 클릭하는 것 방지
+                                break
 
-                        elif proceed.content == "2":
-                            await run_blocking(logging.info, "2번 선택")
-                            driver.terminate_app("net.megastudy.qube")  # 앱 재실행 (다른 문제를 계속 찾기 위함)
-                            driver.activate_app("net.megastudy.qube")
-                            await run_blocking(logging.info, "앱 재실행 중")
-                            solved = len(questions)
-                            await asyncio.sleep(5)  # 앱이 재시작될 동안 기다림
+                            elif proceed.content == "2":
+                                await run_blocking(logging.info, "2번 선택")
+                                driver.terminate_app("net.megastudy.qube")  # 앱 재실행 (다른 문제를 계속 찾기 위함)
+                                driver.activate_app("net.megastudy.qube")
+                                await run_blocking(logging.info, "앱 재실행 중")
+                                solved = len(questions)
+                                await asyncio.sleep(5)  # 앱이 재시작될 동안 기다림
 
-                            # 해결 완료 후 해시태그 입력 팝업창이 뜰 경우
-                            try:
-                                driver.find_element(By.ID, "net.megastudy.qube:id/bt_close").click()
-                                await channel.send("앱에 접속하여 해시태그를 입력해주세요.")
-                                await run_blocking(logging.info, "해시태그 팝업창 뜸")
+                                # 해결 완료 후 해시태그 입력 팝업창이 뜰 경우
+                                try:
+                                    driver.find_element(By.ID, "net.megastudy.qube:id/bt_close").click()
+                                    await channel.send("앱에 접속하여 해시태그를 입력해주세요.")
+                                    await run_blocking(logging.info, "해시태그 팝업창 뜸")
 
-                            except NoSuchElementException:
-                                pass
+                                except NoSuchElementException:
+                                    pass
 
-                            break
+                                break
 
-                        elif proceed.content == "3":
-                            await run_blocking(logging.info, "3번 선택")
-                            driver.find_element(By.ID, "net.megastudy.qube:id/btn_explan_cancel").click()
-                            driver.find_element(By.ID, "net.megastudy.qube:id/bt_positive").click()
-                            await run_blocking(logging.info, "문제 포기 완료")
-                            await asyncio.sleep(4) # 포기 이후 메인 화면 로딩까지 기다림
-                            break
+                            elif proceed.content == "3":
+                                await run_blocking(logging.info, "3번 선택")
+                                driver.find_element(By.ID, "net.megastudy.qube:id/btn_explan_cancel").click()
+                                driver.find_element(By.ID, "net.megastudy.qube:id/bt_positive").click()
+                                await run_blocking(logging.info, "문제 포기 완료")
+                                await asyncio.sleep(4) # 포기 이후 메인 화면 로딩까지 기다림
+                                break
 
-                        else:
-                            await run_blocking(logging.warning, "잘못된 입력: " + proceed.content)
-                            await channel.send("다시 입력해주세요.")
+                            else:
+                                await run_blocking(logging.warning, "잘못된 입력: " + proceed.content)
+                                await channel.send("다시 입력해주세요.")
 
                     driver.implicitly_wait(0)
 
