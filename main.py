@@ -48,10 +48,10 @@ async def on_ready():
     await run_blocking(logging.info, f"{client.user} has connected to Discord")
     solved = None  # 체크표시된 문제 수
     only_special = False  # Special Question만 있고 Qube Question이 비어있는 경우인지
-    toast = False  # Toast Widget이 있는 경우인지
 
     while True:
         stale_exception = False  # StaleElementReferenceException 대응
+        toast = False  # Toast Widget이 있는 경우인지
 
         ## Case 1. 모든 문제가 해결되었고 only_special이 False일 때
         if solved is None or solved == 0:
@@ -208,12 +208,9 @@ async def on_ready():
                                         driver.find_element(By.ID, "net.megastudy.qube:id/ibtn_input_more").click()
                                         driver.find_element(By.ID, "net.megastudy.qube:id/btn_media_gallery").click()
                                         driver.find_element(By.ID, "net.megastudy.qube:id/sp_sort_type").click()
-                                        folder_list = driver.find_elements(
-                                            By.XPATH,
-                                            "/hierarchy/android.widget.FrameLayout/android.widget.FrameLayout/android.widget.ListView/android.widget.TextView",
-                                        )
+                                        folder_list = driver.find_elements(By.XPATH, "/hierarchy/android.widget.FrameLayout/android.widget.FrameLayout/android.widget.ListView/android.widget.TextView")
                                         for item in folder_list:
-                                            if (item.get_attribute("text") == "QubeImages"):
+                                            if item.get_attribute("text") == "QubeImages":
                                                 item.click()
                                                 break
                                         await asyncio.sleep(1)  # 삭제하지 말 것
