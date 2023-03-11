@@ -1,9 +1,12 @@
 import os
 import sys
+import time
 import logging
 import discord
 import asyncio
 import functools
+import matplotlib.pyplot as plt
+import matplotlib.font_manager as fm
 from datetime import datetime
 from dotenv import load_dotenv
 from PIL import Image, ImageChops
@@ -35,11 +38,40 @@ logging.basicConfig(
     level=logging.INFO,
 )
 
+
+def tex_to_png(eq):
+    current_time = datetime.now().strftime("%Y%m%d_%H%M%S")
+    font_path = os.path.join(os.path.dirname(__file__), "Pretendard-Regular.otf")
+    fm.fontManager.addfont(font_path)
+    plt.rcParams["font.family"] = "sans-serif"
+    plt.rcParams["font.sans-serif"] = fm.FontProperties(fname=font_path).get_name()
+    plt.rcParams["mathtext.fontset"] = "cm"
+    fig = plt.figure(figsize=(0.01, 0.01))
+    fig.text(0, 0, eq.encode("unicode_escape"), fontsize=10)
+    file_name = os.path.join(os.path.dirname(__file__), "images_latex", f"{current_time}.png")
+    fig.savefig(file_name, dpi=400, transparent=False, format="png", bbox_inches="tight", pad_inches=0.1)
+    return f"{current_time}.png"
+
+def send_img(img_cnt):
+    driver.find_element(By.ID, "net.megastudy.qube:id/ibtn_input_more").click()
+    driver.find_element(By.ID, "net.megastudy.qube:id/btn_media_gallery").click()
+    driver.find_element(By.ID, "net.megastudy.qube:id/sp_sort_type").click()
+    folder_list = driver.find_elements(By.XPATH, "/hierarchy/android.widget.FrameLayout/android.widget.FrameLayout/android.widget.ListView/android.widget.TextView")
+    for item in folder_list:
+        if item.get_attribute("text") == "QubeImages":
+            item.click()
+            break
+    time.sleep(1)  # 삭제하지 말 것
+    image_list = driver.find_elements(By.ID, "net.megastudy.qube:id/iv_gallery_item_image")
+    for i in range(1, img_cnt + 1):
+        image_list[img_cnt - i].click()
+    driver.find_element(By.ID, "net.megastudy.qube:id/tv_btn_save").click()
+    driver.find_element(By.ID, "net.megastudy.qube:id/btn_image_save").click()
+
 # blocking function을 non-blocking하게 실행
 async def run_blocking(blocking_func, *args, **kwargs):
     func = functools.partial(blocking_func, *args, **kwargs)
     return await client.loop.run_in_executor(None, func)
-
 
 @client.event
 async def on_ready():
@@ -187,30 +219,38 @@ async def on_ready():
                                 while True:
                                     answer = await client.wait_for("message", check=lambda m: m.author.id == USER_ID, timeout=600.0)
                                     if answer.attachments:  # 사진을 첨부한 경우
-                                        await run_blocking( logging.info, f"풀이 수신됨: 사진 {len(answer.attachments)}장")
+                                        await run_blocking(logging.info, f"풀이 수신됨: 사진 {len(answer.attachments)}장")
                                         for image in answer.attachments:
                                             file_name = os.path.join(os.path.dirname(__file__), "images_tea", image.filename)
                                             await image.save(file_name)
                                             driver.push_file(f"/storage/emulated/0/DCIM/QubeImages/{image.filename}", source_path=file_name.encode("unicode_escape"))
-                                        driver.find_element(By.ID, "net.megastudy.qube:id/ibtn_input_more").click()
-                                        driver.find_element(By.ID, "net.megastudy.qube:id/btn_media_gallery").click()
-                                        driver.find_element(By.ID, "net.megastudy.qube:id/sp_sort_type").click()
-                                        folder_list = driver.find_elements(By.XPATH, "/hierarchy/android.widget.FrameLayout/android.widget.FrameLayout/android.widget.ListView/android.widget.TextView")
-                                        for item in folder_list:
-                                            if item.get_attribute("text") == "QubeImages":
-                                                item.click()
-                                                break
-                                        await asyncio.sleep(1)  # 삭제하지 말 것
-                                        image_list = driver.find_elements(By.ID, "net.megastudy.qube:id/iv_gallery_item_image")
-                                        for i in range(1, len(answer.attachments) + 1):
-                                            image_list[len(answer.attachments) - i].click()
-                                        driver.find_element(By.ID, "net.megastudy.qube:id/tv_btn_save").click()
-                                        driver.find_element(By.ID, "net.megastudy.qube:id/btn_image_save").click()
+                                        await run_blocking(send_img(len(answer.attachments)))
 
                                     else:  # 텍스트를 보냈을 경우
                                         if answer.content == "Y":
                                             await run_blocking(logging.info, "풀이 종료")
                                             break
+
+                                        # 수식 포함
+                                        elif "$" in answer.content:
+                                            img_name = await run_blocking(tex_to_png(answer.content))
+                                            file_name = os.path.join(os.path.dirname(__file__), "images_latex", f"{current_time}.png")
+                                            await channel.send(file=discord.File(file_name))
+                                            await channel.send("수식이 포함된 해당 이미지를 풀이로 보낼까요? (Y/N)")
+                                            while True:
+                                                reply = await client.wait_for("message", check=lambda m: m.author.id == USER_ID, timeout=300.0)
+                                                if reply.content == "Y":
+                                                    driver.push_file(f"/storage/emulated/0/DCIM/QubeImages/{img_name}", source_path=file_name.encode("unicode_escape"))
+                                                    await run_blocking(send_img(1))
+                                                    break
+
+                                                elif reply.content == "N":
+                                                    break
+
+                                                else:
+                                                    await channel.send("다시 입력해주세요.")
+
+                                        # 수식 미포함
                                         else:
                                             await run_blocking(logging.info, "풀이 수신됨: " + answer.content)
                                             driver.find_element(By.ID, "net.megastudy.qube:id/et_input_text").send_keys(answer.content)
