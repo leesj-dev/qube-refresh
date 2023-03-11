@@ -9,8 +9,7 @@ from dotenv import load_dotenv
 from PIL import Image, ImageChops
 from appium import webdriver
 from selenium.webdriver.common.by import By
-from selenium.common.exceptions import NoSuchElementException
-from selenium.common.exceptions import StaleElementReferenceException
+from selenium.common.exceptions import NoSuchElementException, StaleElementReferenceException
 
 
 load_dotenv()
@@ -51,7 +50,6 @@ async def on_ready():
 
     while True:
         stale_exception = False  # StaleElementReferenceException 대응
-        toast = False  # Toast Widget이 있는 경우인지
 
         ## Case 1. 모든 문제가 해결되었고 only_special이 False일 때
         if solved is None or solved == 0:
@@ -141,22 +139,11 @@ async def on_ready():
                 except NoSuchElementException:
                     driver.implicitly_wait(2)
 
-                    # Toast widget 케이스 점검
-                    for _ in range(3):
-                        try:
-                            driver.find_element(By.XPATH, "/hierarchy/android.widget.Toast")
-                            await run_blocking(logging.warning, "문제 선점 실패 (Toast)")
-                            toast = True
-                            break
-
-                        except:
-                            pass
-
-                    if toast is False:
+                    try:
                         # Step 1. 선점 성공 알림 보내기
                         await run_blocking(logging.warning, "문제 선점 성공")
                         current_time = datetime.now().strftime("%Y%m%d_%H%M%S")
-                        await channel.send(f"새로운 문제가 도착했습니다 [{current_time}]")
+                        await channel.send(f"새로운 문제가 도착했습니다.")
 
                         # Step 2. 문제 이미지 보내기
                         thumbs = driver.find_elements(By.ID, "net.megastudy.qube:id/iv_chat_image")
@@ -236,6 +223,7 @@ async def on_ready():
                                 driver.find_element(By.ID, "net.megastudy.qube:id/bt_positive").click()
                                 driver.find_element(By.ID, "net.megastudy.qube:id/ibtn_close").click()
                                 await run_blocking(logging.info, "답변 완료됨")
+                                solved = len(questions)
                                 await asyncio.sleep(4)  # 내가 답변한 걸 다시 클릭하는 것 방지
                                 break
 
@@ -269,6 +257,17 @@ async def on_ready():
                             else:
                                 await run_blocking(logging.warning, "잘못된 입력: " + proceed.content)
                                 await channel.send("다시 입력해주세요.")
+
+                    except NoSuchElementException:
+                        # Toast인 경우
+                        try:
+                            driver.find_element(By.XPATH, "/hierarchy/android.widget.Toast")
+                            await run_blocking(logging.warning, "문제 선점 실패 (Toast)")
+                            await channel.send("해당 문제는 다른 마스터가 이미 선점하였습니다.")
+
+                        # 기타 상황에 대한 예외처리
+                        except NoSuchElementException:
+                            await run_blocking(logging.error, "예외처리 상황 발생")
 
                     driver.implicitly_wait(0)
 
