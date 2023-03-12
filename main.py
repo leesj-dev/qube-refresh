@@ -39,7 +39,7 @@ logging.basicConfig(
 )
 
 
-def tex_to_png(eq, current_time):
+def tex_to_png(eq: str, current_time: str) -> str:
     font_path = os.path.join(os.path.dirname(__file__), "Pretendard-Regular.otf")
     fm.fontManager.addfont(font_path)
     plt.switch_backend("Agg")
@@ -51,7 +51,9 @@ def tex_to_png(eq, current_time):
     file_name = os.path.join(os.path.dirname(__file__), "images_latex", f"{current_time}.png")
     fig.savefig(file_name, dpi=400, transparent=False, format="png", bbox_inches="tight", pad_inches=0.1)
 
-def send_img(img_cnt):
+    return f"{current_time}.png"
+
+def send_img(img_cnt: int):
     driver.find_element(By.ID, "net.megastudy.qube:id/ibtn_input_more").click()
     driver.find_element(By.ID, "net.megastudy.qube:id/btn_media_gallery").click()
     driver.find_element(By.ID, "net.megastudy.qube:id/sp_sort_type").click()
@@ -81,13 +83,16 @@ class Button_finish(discord.ui.View):
     @discord.ui.button(label="종료", style=discord.ButtonStyle.grey, custom_id="finish")
     async def callback_1(self, interaction: discord.Interaction, button: discord.ui.Button):
         button.label += " ✅"
-        button.disabled = True
+        for x in self.children:
+            x.disabled = True
         await interaction.response.edit_message(view=self)
+        await run_blocking(logging.info, "풀이 종료 선택")
         self.value = True
         self.stop()
 
     async def on_timeout(self):
         await self.channel.send("Timeout!")
+        await run_blocking(logging.info, "timeout on button_finish")
         self.stop()
 
 
@@ -100,21 +105,26 @@ class Button_yn(discord.ui.View):
     @discord.ui.button(label="예", style=discord.ButtonStyle.green, custom_id="yes")
     async def callback_1(self, interaction: discord.Interaction, button: discord.ui.Button):
         button.label += " ✅"
-        button.disabled = True
+        for x in self.children:
+            x.disabled = True
         await interaction.response.edit_message(view=self)
+        await run_blocking(logging.info, "예 선택")
         self.value = True
         self.stop()
 
     @discord.ui.button(label="아니오", style=discord.ButtonStyle.red, custom_id="no")
     async def callback_2(self, interaction: discord.Interaction, button: discord.ui.Button):
         button.label += " ✅"
-        button.disabled = True
+        for x in self.children:
+            x.disabled = True
         await interaction.response.edit_message(view=self)
+        await run_blocking(logging.info, "아니오 선택")
         self.value = False
         self.stop()
 
     async def on_timeout(self):
         await self.channel.send("Timeout!")
+        await run_blocking(logging.info, "timeout on button_yn")
         self.stop()
 
 
@@ -128,6 +138,7 @@ class Button_solve(discord.ui.View):
     async def callback_1(self, interaction: discord.Interaction, button: discord.ui.Button):
         button.label += " ✅"
         await interaction.response.edit_message(view=self)
+        await run_blocking(logging.info, "지금 풀기 선택")
         self.value = 1
         await self.channel.send(embed=discord.Embed(title="보낼 답을 입력하거나 풀이 사진을 보내세요."), content="")
         cnt = 0
@@ -139,7 +150,7 @@ class Button_solve(discord.ui.View):
                 view_finish = Button_finish(self.channel)
                 await self.channel.send(embed=discord.Embed(title="모두 답했으면 종료를 누르고,\n그렇지 않다면 계속 답하세요."), content="", view=view_finish)
                 events = {asyncio.create_task(client.wait_for("message", check=lambda m: m.author.id == USER_ID, timeout=600.0)),
-                        asyncio.create_task(view_finish.wait())}
+                          asyncio.create_task(view_finish.wait())}
                 done, pending = await asyncio.wait(events, return_when=asyncio.FIRST_COMPLETED)
                 for future in pending:  # 진행중인 작업 취소
                     future.cancel()
@@ -158,17 +169,21 @@ class Button_solve(discord.ui.View):
                     file_name = os.path.join(os.path.dirname(__file__), "images_tea", image.filename)
                     await image.save(file_name)
                     driver.push_file(f"/storage/emulated/0/DCIM/QubeImages/{image.filename}", source_path=file_name)
-                await run_blocking(send_img(len(answer.attachments)))
+                await run_blocking(logging.info, "사진 저장 완료")
+                await run_blocking(send_img, len(answer.attachments))
+                await run_blocking(logging.info, "사진 전송 완료")
 
             else:  # 텍스트를 보냈을 경우
                 answer.content = fr"{answer.content}"
 
                 # 수식 포함
                 if "$" in answer.content:
+                    await run_blocking(logging.info, "풀이 수신됨 (수식): " + answer.content)
                     try:
                         img_name = await run_blocking(tex_to_png, answer.content, current_time)
 
                     except:
+                        await run_blocking(logging.info, "올바르지 않은 수식")
                         view_yn = Button_yn(self.channel)
                         await self.channel.send(embed=discord.Embed(title="올바르지 않은 수식입니다. 텍스트로 보낼까요?"), content="", view=view_yn)
                         await view_yn.wait()
@@ -176,11 +191,13 @@ class Button_solve(discord.ui.View):
                         if view_yn.value == True:
                             driver.find_element(By.ID, "net.megastudy.qube:id/et_input_text").send_keys(answer.content)
                             driver.find_element(By.ID, "net.megastudy.qube:id/btn_input_send").click()
+                            await run_blocking(logging.info, "텍스트 전송 완료")
                         else:
-                            pass
+                            await run_blocking(logging.info, "텍스트 전송 취소")
 
                     else:
                         file_name = os.path.join(os.path.dirname(__file__), "images_latex", f"{current_time}.png")
+                        await run_blocking(logging.info, "수식 이미지 변환 완료")
                         await self.channel.send(file=discord.File(file_name))
                         view_yn = Button_yn(self.channel)
                         await self.channel.send(embed=discord.Embed(title="수식이 포함된 해당 이미지를 풀이로 보낼까요?"), content="", view=view_yn)
@@ -189,14 +206,16 @@ class Button_solve(discord.ui.View):
                         if view_yn.value == True:
                             driver.push_file(f"/storage/emulated/0/DCIM/QubeImages/{img_name}", source_path=file_name)
                             await run_blocking(send_img, 1)
+                            await run_blocking(logging.info, "수식 이미지 전송 완료")
                         else:
-                            pass
+                            await run_blocking(logging.info, "수식 이미지 전송 취소")
 
                 # 수식 미포함
                 else:
-                    await run_blocking(logging.info, "풀이 수신됨: " + answer.content)
+                    await run_blocking(logging.info, "풀이 수신됨 (텍스트): " + answer.content)
                     driver.find_element(By.ID, "net.megastudy.qube:id/et_input_text").send_keys(answer.content)
                     driver.find_element(By.ID, "net.megastudy.qube:id/btn_input_send").click()
+                    await run_blocking(logging.info, "텍스트 전송 완료")
 
                 cnt += 1
 
@@ -217,6 +236,7 @@ class Button_solve(discord.ui.View):
         for x in self.children:
             x.disabled = True
         await interaction.response.edit_message(view=self)
+        await run_blocking(logging.info, "나중에 풀기 선택")
         self.value = 2
         self.stop()
 
@@ -229,11 +249,13 @@ class Button_solve(discord.ui.View):
         for x in self.children:
             x.disabled = True
         await interaction.response.edit_message(view=self)
+        await run_blocking(logging.info, "포기하기 선택")
         self.value = 3
         self.stop()
 
     async def on_timeout(self):
         await self.channel.send("Timeout!")
+        await run_blocking(logging.info, "timeout on button_solve")
         self.stop()
 
 
