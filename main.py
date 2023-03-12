@@ -50,8 +50,8 @@ def tex_to_png(eq: str, current_time: str) -> str:
     fig.text(0, 0, eq, fontsize=10)
     file_name = os.path.join(os.path.dirname(__file__), "images_latex", f"{current_time}.png")
     fig.savefig(file_name, dpi=400, transparent=False, format="png", bbox_inches="tight", pad_inches=0.1)
-
     return f"{current_time}.png"
+
 
 def send_img(img_cnt: int):
     driver.find_element(By.ID, "net.megastudy.qube:id/ibtn_input_more").click()
@@ -69,10 +69,12 @@ def send_img(img_cnt: int):
     driver.find_element(By.ID, "net.megastudy.qube:id/tv_btn_save").click()
     driver.find_element(By.ID, "net.megastudy.qube:id/btn_image_save").click()
 
+
 # blocking function을 non-blocking하게 실행
 async def run_blocking(blocking_func, *args, **kwargs):
     func = functools.partial(blocking_func, *args, **kwargs)
     return await client.loop.run_in_executor(None, func)
+
 
 class Button_finish(discord.ui.View):
     def __init__(self, channel):
@@ -139,7 +141,6 @@ class Button_solve(discord.ui.View):
         button.label += " ✅"
         await interaction.response.edit_message(view=self)
         await run_blocking(logging.info, "지금 풀기 선택")
-        self.value = 1
         await self.channel.send(embed=discord.Embed(title="보낼 답을 입력하거나 풀이 사진을 보내세요."), content="")
         cnt = 0
 
@@ -154,7 +155,6 @@ class Button_solve(discord.ui.View):
                 done, pending = await asyncio.wait(events, return_when=asyncio.FIRST_COMPLETED)
                 for future in pending:  # 진행중인 작업 취소
                     future.cancel()
-
                 if view_finish.value == True:  # 버튼을 눌렀을 경우
                     break
 
@@ -162,8 +162,7 @@ class Button_solve(discord.ui.View):
                 answer = done.pop().result()
                 current_time = datetime.now().strftime("%Y%m%d_%H%M%S")
 
-            # 이미지를 보냈을 경우
-            if answer.attachments:
+            if answer.attachments:  # 이미지를 보냈을 경우
                 await run_blocking(logging.info, f"풀이 수신됨: 사진 {len(answer.attachments)}장")
                 for image in answer.attachments:
                     file_name = os.path.join(os.path.dirname(__file__), "images_tea", image.filename)
@@ -172,7 +171,6 @@ class Button_solve(discord.ui.View):
                 await run_blocking(logging.info, "사진 저장 완료")
                 await run_blocking(send_img, len(answer.attachments))
                 await run_blocking(logging.info, "사진 전송 완료")
-
             else:  # 텍스트를 보냈을 경우
                 answer.content = fr"{answer.content}"
 
@@ -187,7 +185,6 @@ class Button_solve(discord.ui.View):
                         view_yn = Button_yn(self.channel)
                         await self.channel.send(embed=discord.Embed(title="올바르지 않은 수식입니다. 텍스트로 보낼까요?"), content="", view=view_yn)
                         await view_yn.wait()
-
                         if view_yn.value == True:
                             driver.find_element(By.ID, "net.megastudy.qube:id/et_input_text").send_keys(answer.content)
                             driver.find_element(By.ID, "net.megastudy.qube:id/btn_input_send").click()
@@ -202,7 +199,6 @@ class Button_solve(discord.ui.View):
                         view_yn = Button_yn(self.channel)
                         await self.channel.send(embed=discord.Embed(title="수식이 포함된 해당 이미지를 풀이로 보낼까요?"), content="", view=view_yn)
                         await view_yn.wait()
-
                         if view_yn.value == True:
                             driver.push_file(f"/storage/emulated/0/DCIM/QubeImages/{img_name}", source_path=file_name)
                             await run_blocking(send_img, 1)
@@ -219,13 +215,8 @@ class Button_solve(discord.ui.View):
 
                 cnt += 1
 
-        await asyncio.sleep(1)  # 삭제하지 말 것
-        driver.find_element(By.ID, "net.megastudy.qube:id/btn_explan_complete").click()
-        driver.find_element(By.ID, "net.megastudy.qube:id/bt_positive").click()
-        driver.find_element(By.ID, "net.megastudy.qube:id/ibtn_close").click()
-        await run_blocking(logging.info, "답변 완료됨")
-        # solved = len(questions)
-        await asyncio.sleep(4)  # 내가 답변한 걸 다시 클릭하는 것 방지
+        self.value = 1
+        self.stop()
 
     @discord.ui.button(label="나중에 풀기", style=discord.ButtonStyle.green, custom_id="button2")
     async def callback_2(self, interaction: discord.Interaction, button: discord.ui.Button):
@@ -342,7 +333,6 @@ async def on_ready():
                     try:
                         driver.find_element(By.ID, "net.megastudy.qube:id/fl_progress")
                         await run_blocking(logging.info, "새로고침 될 때까지 기다림")
-
                     except NoSuchElementException:
                         await run_blocking(logging.info, "새로고침 완료")
                         break
@@ -356,7 +346,6 @@ async def on_ready():
                 # Case 2-1-2. 다른 마스터가 답변 중이지 않을 때
                 except NoSuchElementException:
                     driver.implicitly_wait(2)
-
                     try:
                         # Step 1. 선점 성공 알림 보내기
                         await run_blocking(logging.warning, "문제 선점 성공")
@@ -397,13 +386,22 @@ async def on_ready():
                         await channel.send(embed=discord.Embed(title="풀이 옵션 선택"), content="", view=view_solve)
                         await view_solve.wait()
                         await run_blocking(logging.info, "풀이 옵션 전송 완료")
-                        # if view_solve.value == 1: async def 안에 있음 ('지금 풀기' 도중 다른 옵션으로 전환할 가능성 마련)
-                        if view_solve.value == 2:
+
+                        if view_solve.value == 1:
+                            await asyncio.sleep(1)  # 삭제하지 말 것
+                            driver.find_element(By.ID, "net.megastudy.qube:id/btn_explan_complete").click()
+                            driver.find_element(By.ID, "net.megastudy.qube:id/bt_positive").click()
+                            driver.find_element(By.ID, "net.megastudy.qube:id/ibtn_close").click()
+                            await run_blocking(logging.info, "답변 완료됨")
+                            solved = len(questions)
+                            await asyncio.sleep(4)  # 내가 답변한 걸 다시 클릭하는 것 방지
+
+                        elif view_solve.value == 2:
                             await run_blocking(logging.info, "2번 선택")
                             driver.terminate_app("net.megastudy.qube")  # 앱을 재실행하여 다른 문제를 계속 찾기 위함
                             driver.activate_app("net.megastudy.qube")
                             await run_blocking(logging.info, "앱 재실행 중")
-                            # solved = len(questions)
+                            solved = len(questions)
                             await asyncio.sleep(5)  # 앱이 재시작될 동안 기다림
 
                             # 해결 완료 후 해시태그 입력 팝업창이 뜰 경우
@@ -411,7 +409,6 @@ async def on_ready():
                                 driver.find_element(By.ID, "net.megastudy.qube:id/bt_close").click()
                                 await channel.send(embed=discord.Embed(title="앱에 접속하여 해시태그를 입력해주세요."), content="")
                                 await run_blocking(logging.info, "해시태그 팝업창 뜸")
-
                             except NoSuchElementException:
                                 pass
 
@@ -428,7 +425,6 @@ async def on_ready():
                             driver.find_element(By.XPATH, "/hierarchy/android.widget.Toast")
                             await run_blocking(logging.warning, "문제 선점 실패 (Toast)")
                             await channel.send(embed=discord.Embed(title="해당 문제는 다른 마스터가 이미 선점하였습니다."), content="")
-
                         # 기타 상황에 대한 예외처리
                         except NoSuchElementException:
                             await run_blocking(logging.error, "예외처리 상황 발생")
@@ -454,8 +450,7 @@ async def on_ready():
                 try:
                     driver.find_element(By.ID, "net.megastudy.qube:id/home_main_top_refresh").click()
                     await run_blocking(logging.info, "새로고침 시도")
-
-                # 기타 상황에 대한 예외처리 (element가 아직 로딩이 안 되었는 등)
+                # 기타 상황에 대한 예외처리 (element가 아직 로딩이 안 되어있는 등)
                 except NoSuchElementException:
                     await run_blocking(logging.error, "예외처리 상황 발생")
 
