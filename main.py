@@ -39,18 +39,17 @@ logging.basicConfig(
 )
 
 
-def tex_to_png(eq):
-    current_time = datetime.now().strftime("%Y%m%d_%H%M%S")
+def tex_to_png(eq, current_time):
     font_path = os.path.join(os.path.dirname(__file__), "Pretendard-Regular.otf")
     fm.fontManager.addfont(font_path)
+    plt.switch_backend("Agg")
     plt.rcParams["font.family"] = "sans-serif"
     plt.rcParams["font.sans-serif"] = fm.FontProperties(fname=font_path).get_name()
     plt.rcParams["mathtext.fontset"] = "cm"
     fig = plt.figure(figsize=(0.01, 0.01))
-    fig.text(0, 0, eq.encode("unicode_escape"), fontsize=10)
+    fig.text(0, 0, eq, fontsize=10)
     file_name = os.path.join(os.path.dirname(__file__), "images_latex", f"{current_time}.png")
     fig.savefig(file_name, dpi=400, transparent=False, format="png", bbox_inches="tight", pad_inches=0.1)
-    return f"{current_time}.png"
 
 def send_img(img_cnt):
     driver.find_element(By.ID, "net.megastudy.qube:id/ibtn_input_more").click()
@@ -72,6 +71,171 @@ def send_img(img_cnt):
 async def run_blocking(blocking_func, *args, **kwargs):
     func = functools.partial(blocking_func, *args, **kwargs)
     return await client.loop.run_in_executor(None, func)
+
+class Button_finish(discord.ui.View):
+    def __init__(self, channel):
+        super().__init__(timeout=3600)
+        self.channel = channel
+        self.value = None
+
+    @discord.ui.button(label="종료", style=discord.ButtonStyle.grey, custom_id="finish")
+    async def callback_1(self, interaction: discord.Interaction, button: discord.ui.Button):
+        button.label += " ✅"
+        button.disabled = True
+        await interaction.response.edit_message(view=self)
+        self.value = True
+        self.stop()
+
+    async def on_timeout(self):
+        await self.channel.send("Timeout!")
+        self.stop()
+
+
+class Button_yn(discord.ui.View):
+    def __init__(self, channel):
+        super().__init__(timeout=3600)
+        self.channel = channel
+        self.value = None
+
+    @discord.ui.button(label="예", style=discord.ButtonStyle.green, custom_id="yes")
+    async def callback_1(self, interaction: discord.Interaction, button: discord.ui.Button):
+        button.label += " ✅"
+        button.disabled = True
+        await interaction.response.edit_message(view=self)
+        self.value = True
+        self.stop()
+
+    @discord.ui.button(label="아니오", style=discord.ButtonStyle.red, custom_id="no")
+    async def callback_2(self, interaction: discord.Interaction, button: discord.ui.Button):
+        button.label += " ✅"
+        button.disabled = True
+        await interaction.response.edit_message(view=self)
+        self.value = False
+        self.stop()
+
+    async def on_timeout(self):
+        await self.channel.send("Timeout!")
+        self.stop()
+
+
+class Button_solve(discord.ui.View):
+    def __init__(self, channel):
+        super().__init__(timeout=3600)
+        self.channel = channel
+        self.value = None
+
+    @discord.ui.button(label="지금 풀기", style=discord.ButtonStyle.blurple, custom_id="button1")
+    async def callback_1(self, interaction: discord.Interaction, button: discord.ui.Button):
+        button.label += " ✅"
+        await interaction.response.edit_message(view=self)
+        self.value = 1
+        await self.channel.send(embed=discord.Embed(title="보낼 답을 입력하거나 풀이 사진을 보내세요."), content="")
+        cnt = 0
+
+        while True:
+            if cnt == 0:
+                answer = await client.wait_for("message", check=lambda m: m.author.id == USER_ID, timeout=600.0)
+            else:
+                view_finish = Button_finish(self.channel)
+                await self.channel.send(embed=discord.Embed(title="모두 답했으면 종료를 누르고,\n그렇지 않다면 계속 답하세요."), content="", view=view_finish)
+                events = {asyncio.create_task(client.wait_for("message", check=lambda m: m.author.id == USER_ID, timeout=600.0)),
+                        asyncio.create_task(view_finish.wait())}
+                done, pending = await asyncio.wait(events, return_when=asyncio.FIRST_COMPLETED)
+                for future in pending:  # 진행중인 작업 취소
+                    future.cancel()
+
+                if view_finish.value == True:  # 버튼을 눌렀을 경우
+                    break
+
+                # 텍스트 or 이미지를 보냈을 경우
+                answer = done.pop().result()
+                current_time = datetime.now().strftime("%Y%m%d_%H%M%S")
+
+            # 이미지를 보냈을 경우
+            if answer.attachments:
+                await run_blocking(logging.info, f"풀이 수신됨: 사진 {len(answer.attachments)}장")
+                for image in answer.attachments:
+                    file_name = os.path.join(os.path.dirname(__file__), "images_tea", image.filename)
+                    await image.save(file_name)
+                    driver.push_file(f"/storage/emulated/0/DCIM/QubeImages/{image.filename}", source_path=file_name)
+                await run_blocking(send_img(len(answer.attachments)))
+
+            else:  # 텍스트를 보냈을 경우
+                answer.content = fr"{answer.content}"
+
+                # 수식 포함
+                if "$" in answer.content:
+                    try:
+                        img_name = await run_blocking(tex_to_png, answer.content, current_time)
+
+                    except:
+                        view_yn = Button_finish(self.channel)
+                        await self.channel.send(embed=discord.Embed(title="올바르지 않은 수식입니다. 텍스트로 보낼까요?"), content="", view=view_yn)
+                        await view_yn.wait()
+
+                        if view_yn.value == True:
+                            driver.find_element(By.ID, "net.megastudy.qube:id/et_input_text").send_keys(answer.content)
+                            driver.find_element(By.ID, "net.megastudy.qube:id/btn_input_send").click()
+                        else:
+                            pass
+
+                    else:
+                        file_name = os.path.join(os.path.dirname(__file__), "images_latex", f"{current_time}.png")
+                        await self.channel.send(file=discord.File(file_name))
+                        view_yn = Button_finish(self.channel)
+                        await self.channel.send(embed=discord.Embed(title="수식이 포함된 해당 이미지를 풀이로 보낼까요?"), content="", view=view_yn)
+                        await view_yn.wait()
+
+                        if view_yn.value == True:
+                            driver.push_file(f"/storage/emulated/0/DCIM/QubeImages/{img_name}", source_path=file_name)
+                            await run_blocking(send_img, 1)
+                        else:
+                            pass
+
+                # 수식 미포함
+                else:
+                    await run_blocking(logging.info, "풀이 수신됨: " + answer.content)
+                    driver.find_element(By.ID, "net.megastudy.qube:id/et_input_text").send_keys(answer.content)
+                    driver.find_element(By.ID, "net.megastudy.qube:id/btn_input_send").click()
+
+                cnt += 1
+
+        await asyncio.sleep(1)  # 삭제하지 말 것
+        driver.find_element(By.ID, "net.megastudy.qube:id/btn_explan_complete").click()
+        driver.find_element(By.ID, "net.megastudy.qube:id/bt_positive").click()
+        driver.find_element(By.ID, "net.megastudy.qube:id/ibtn_close").click()
+        await run_blocking(logging.info, "답변 완료됨")
+        # solved = len(questions)
+        await asyncio.sleep(4)  # 내가 답변한 걸 다시 클릭하는 것 방지
+
+    @discord.ui.button(label="나중에 풀기", style=discord.ButtonStyle.green, custom_id="button2")
+    async def callback_2(self, interaction: discord.Interaction, button: discord.ui.Button):
+        button.label += " ✅"
+        button1 = [x for x in self.children if x.custom_id=="button1"][0]
+        if " ✅" in button1.label:
+            button1.label = button1.label[:-2]
+        for x in self.children:
+            x.disabled = True
+        await interaction.response.edit_message(view=self)
+        self.value = 2
+        self.stop()
+
+    @discord.ui.button(label="포기하기", style=discord.ButtonStyle.red, custom_id="button3")
+    async def callback_3(self, interaction: discord.Interaction, button: discord.ui.Button):
+        button.label += " ✅"
+        button1 = [x for x in self.children if x.custom_id=="button1"][0]
+        if " ✅" in button1.label:
+            button1.label = button1.label[:-2]
+        for x in self.children:
+            x.disabled = True
+        await interaction.response.edit_message(view=self)
+        self.value = 3
+        self.stop()
+
+    async def on_timeout(self):
+        await self.channel.send("Timeout!")
+        self.stop()
+
 
 @client.event
 async def on_ready():
@@ -175,7 +339,7 @@ async def on_ready():
                         # Step 1. 선점 성공 알림 보내기
                         await run_blocking(logging.warning, "문제 선점 성공")
                         current_time = datetime.now().strftime("%Y%m%d_%H%M%S")
-                        await channel.send(f"새로운 문제가 도착했습니다.")
+                        await channel.send(embed=discord.Embed(title="새로운 문제가 도착했습니다."), content="")
 
                         # Step 2. 문제 이미지 보내기
                         thumbs = driver.find_elements(By.ID, "net.megastudy.qube:id/iv_chat_image")
@@ -207,103 +371,41 @@ async def on_ready():
                         await run_blocking(logging.info, "본문 전송 완료")
 
                         # Step 4. 풀이 옵션 선택
-                        await channel.send("지금 풀기는 1, 나중에 풀기는 2, 포기는 3을 입력하세요.")
+                        view_solve = Button_solve(channel)
+                        await channel.send(embed=discord.Embed(title="풀이 옵션 선택"), content="", view=view_solve)
+                        await view_solve.wait()
                         await run_blocking(logging.info, "풀이 옵션 전송 완료")
-                        while True:  # 제대로 된 input값이 들어올 때까지 반복
-                            proceed = await client.wait_for("message", check=lambda m: m.author.id == USER_ID, timeout=300.0)
+                        # if view_solve.value == 1: async def 안에 있음 ('지금 풀기' 도중 다른 옵션으로 전환할 가능성 마련)
+                        if view_solve.value == 2:
+                            await run_blocking(logging.info, "2번 선택")
+                            driver.terminate_app("net.megastudy.qube")  # 앱을 재실행하여 다른 문제를 계속 찾기 위함
+                            driver.activate_app("net.megastudy.qube")
+                            await run_blocking(logging.info, "앱 재실행 중")
+                            # solved = len(questions)
+                            await asyncio.sleep(5)  # 앱이 재시작될 동안 기다림
 
-                            if proceed.content == "1":
-                                await run_blocking(logging.info, "1번 선택")
-                                await channel.send("보낼 답을 입력하거나 풀이 사진을 보내세요.")
-                                current_time = datetime.now().strftime("%Y%m%d_%H%M%S")
-                                while True:
-                                    answer = await client.wait_for("message", check=lambda m: m.author.id == USER_ID, timeout=600.0)
-                                    if answer.attachments:  # 사진을 첨부한 경우
-                                        await run_blocking(logging.info, f"풀이 수신됨: 사진 {len(answer.attachments)}장")
-                                        for image in answer.attachments:
-                                            file_name = os.path.join(os.path.dirname(__file__), "images_tea", image.filename)
-                                            await image.save(file_name)
-                                            driver.push_file(f"/storage/emulated/0/DCIM/QubeImages/{image.filename}", source_path=file_name.encode("unicode_escape"))
-                                        await run_blocking(send_img(len(answer.attachments)))
+                            # 해결 완료 후 해시태그 입력 팝업창이 뜰 경우
+                            try:
+                                driver.find_element(By.ID, "net.megastudy.qube:id/bt_close").click()
+                                await channel.send(embed=discord.Embed(title="앱에 접속하여 해시태그를 입력해주세요."), content="")
+                                await run_blocking(logging.info, "해시태그 팝업창 뜸")
 
-                                    else:  # 텍스트를 보냈을 경우
-                                        if answer.content == "Y":
-                                            await run_blocking(logging.info, "풀이 종료")
-                                            break
+                            except NoSuchElementException:
+                                pass
 
-                                        # 수식 포함
-                                        elif "$" in answer.content:
-                                            img_name = await run_blocking(tex_to_png(answer.content))
-                                            file_name = os.path.join(os.path.dirname(__file__), "images_latex", f"{current_time}.png")
-                                            await channel.send(file=discord.File(file_name))
-                                            await channel.send("수식이 포함된 해당 이미지를 풀이로 보낼까요? (Y/N)")
-                                            while True:
-                                                reply = await client.wait_for("message", check=lambda m: m.author.id == USER_ID, timeout=300.0)
-                                                if reply.content == "Y":
-                                                    driver.push_file(f"/storage/emulated/0/DCIM/QubeImages/{img_name}", source_path=file_name.encode("unicode_escape"))
-                                                    await run_blocking(send_img(1))
-                                                    break
-
-                                                elif reply.content == "N":
-                                                    break
-
-                                                else:
-                                                    await channel.send("다시 입력해주세요.")
-
-                                        # 수식 미포함
-                                        else:
-                                            await run_blocking(logging.info, "풀이 수신됨: " + answer.content)
-                                            driver.find_element(By.ID, "net.megastudy.qube:id/et_input_text").send_keys(answer.content)
-                                            driver.find_element(By.ID, "net.megastudy.qube:id/btn_input_send").click()
-
-                                    await channel.send("모두 답했으면 Y를 입력하고, 그렇지 않다면 계속 답하세요.")
-
-                                await asyncio.sleep(1)  # 삭제하지 말 것
-                                driver.find_element(By.ID, "net.megastudy.qube:id/btn_explan_complete").click()
-                                driver.find_element(By.ID, "net.megastudy.qube:id/bt_positive").click()
-                                driver.find_element(By.ID, "net.megastudy.qube:id/ibtn_close").click()
-                                await run_blocking(logging.info, "답변 완료됨")
-                                solved = len(questions)
-                                await asyncio.sleep(4)  # 내가 답변한 걸 다시 클릭하는 것 방지
-                                break
-
-                            elif proceed.content == "2":
-                                await run_blocking(logging.info, "2번 선택")
-                                driver.terminate_app("net.megastudy.qube")  # 앱을 재실행하여 다른 문제를 계속 찾기 위함
-                                driver.activate_app("net.megastudy.qube")
-                                await run_blocking(logging.info, "앱 재실행 중")
-                                solved = len(questions)
-                                await asyncio.sleep(5)  # 앱이 재시작될 동안 기다림
-
-                                # 해결 완료 후 해시태그 입력 팝업창이 뜰 경우
-                                try:
-                                    driver.find_element(By.ID, "net.megastudy.qube:id/bt_close").click()
-                                    await channel.send("앱에 접속하여 해시태그를 입력해주세요.")
-                                    await run_blocking(logging.info, "해시태그 팝업창 뜸")
-
-                                except NoSuchElementException:
-                                    pass
-
-                                break
-
-                            elif proceed.content == "3":
-                                await run_blocking(logging.info, "3번 선택")
-                                driver.find_element(By.ID, "net.megastudy.qube:id/btn_explan_cancel").click()
-                                driver.find_element(By.ID, "net.megastudy.qube:id/bt_positive").click()
-                                await run_blocking(logging.info, "문제 포기 완료")
-                                await asyncio.sleep(4)  # 포기 이후 메인 화면 로딩까지 기다림
-                                break
-
-                            else:
-                                await run_blocking(logging.warning, "잘못된 입력: " + proceed.content)
-                                await channel.send("다시 입력해주세요.")
+                        elif view_solve.value == 3:
+                            await run_blocking(logging.info, "3번 선택")
+                            driver.find_element(By.ID, "net.megastudy.qube:id/btn_explan_cancel").click()
+                            driver.find_element(By.ID, "net.megastudy.qube:id/bt_positive").click()
+                            await run_blocking(logging.info, "문제 포기 완료")
+                            await asyncio.sleep(4)  # 포기 이후 메인 화면 로딩까지 기다림
 
                     except NoSuchElementException:
                         # Toast인 경우
                         try:
                             driver.find_element(By.XPATH, "/hierarchy/android.widget.Toast")
                             await run_blocking(logging.warning, "문제 선점 실패 (Toast)")
-                            await channel.send("해당 문제는 다른 마스터가 이미 선점하였습니다.")
+                            await channel.send(embed=discord.Embed(title="해당 문제는 다른 마스터가 이미 선점하였습니다."), content="")
 
                         # 기타 상황에 대한 예외처리
                         except NoSuchElementException:
