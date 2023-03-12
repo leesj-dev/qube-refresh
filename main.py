@@ -169,7 +169,7 @@ class Button_solve(discord.ui.View):
                         img_name = await run_blocking(tex_to_png, answer.content, current_time)
 
                     except:
-                        view_yn = Button_finish(self.channel)
+                        view_yn = Button_yn(self.channel)
                         await self.channel.send(embed=discord.Embed(title="올바르지 않은 수식입니다. 텍스트로 보낼까요?"), content="", view=view_yn)
                         await view_yn.wait()
 
@@ -182,7 +182,7 @@ class Button_solve(discord.ui.View):
                     else:
                         file_name = os.path.join(os.path.dirname(__file__), "images_latex", f"{current_time}.png")
                         await self.channel.send(file=discord.File(file_name))
-                        view_yn = Button_finish(self.channel)
+                        view_yn = Button_yn(self.channel)
                         await self.channel.send(embed=discord.Embed(title="수식이 포함된 해당 이미지를 풀이로 보낼까요?"), content="", view=view_yn)
                         await view_yn.wait()
 
