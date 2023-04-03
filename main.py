@@ -518,7 +518,7 @@ async def on_ready():
 
             # Case 2-2. 그대로라면
             elif len(questions) == solved:
-                logging.info("신규 문제 없음")  # heartbeat block 방지하기 위해 run_blocking 처리
+                logging.info("신규 문제 없음")
 
             # Case 2-3. 해결 중인 문제가 줄어들었을 때
             elif len(questions) < solved and len(questions) > 0:
