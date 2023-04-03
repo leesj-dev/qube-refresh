@@ -5,12 +5,12 @@
 2. 프로그램을 실행한 후, `More Actions`을 눌러 `SDK Manager`로 가서 Android 13.0 (Tiramisu)을 다운로드합니다. 화면 상단에 보면 `Android SDK Location`이 있는데, 나중에 이 경로를 쓸 것이니 미리 복사해두기 바랍니다. 일반적으로 아래와 같습니다.
 * Windows: `C:\Users\[사용자 이름]\AppData\Local\Android\SDK`
 * Mac: `/Users/[사용자 이름]/Library/Android/sdk`
-![android-automation-1.png](https://leesj.me/static/e37b2060e5aef35541135b05b5f0802a/89066/android-automation-1.png)
+![android-automation-1.png](https://leesj.me/static/e37b2060e5aef35541135b05b5f0802a/36aa2/android-automation-1.png)
 
 3. 다시 처음화면으로 돌아가 `More Actions`의 `Virtual Device Manager`로 갑니다. `Create Device`를 누르고 Pixel 4, Android 13.0 (Tiramisu)를 선택합니다.
 
 4. 플레이 버튼을 누르면 가상 안드로이드 디바이스가 실행됩니다.
-![android-automation-2.png](https://leesj.me/static/64dbe5033f6a33c361cca6fec1850024/89066/android-automation-2.png)
+![android-automation-2.png](https://leesj.me/static/64dbe5033f6a33c361cca6fec1850024/25af7/android-automation-2.png)
 
 5. 기존에 Java 8가 설치되어 있는 사람은 이 단계를 건너뛰면 됩니다. [JDK 8 Oracle 페이지](https://www.oracle.com/kr/java/technologies/javase/javase8u211-later-archive-downloads.html)에 들어가서 JDK(Java Development Kit)를 설치합니다.
 편의상 Oracle 서버의 direct download 링크를 걸어두겠습니다. 이 글을 작성하는 시점 기준으로 8u331 버전입니다.
@@ -32,6 +32,8 @@ Mac의 경우, Finder > Go > Go To Folder로 가서 `/Library/Java/JavaVirtualMa
 8. startServer를 눌러 서버를 실행시킵니다.
 
 9. Play Store에서 구글 계정에 로그인하고 Qube 앱을 다운로드합니다.
+
+<br>
 
 ## Step 2. Discord 봇 설정
 1. clone하고자 하는 디렉토리로 이동한 후, 이 git을 clone해줍니다.
@@ -71,6 +73,8 @@ USER_ID = (아까 복사한 유저 ID)
 * Server Members Intent
 * Message Content Intent
 
+<br>
+
 ## Step 3. 코드 실행
 1. 본 repo를 Clone한 후, 패키지를 설치합니다.
 * `pip install -r /path/to/requirements.txt`
@@ -79,7 +83,9 @@ USER_ID = (아까 복사한 유저 ID)
 
 3. 마스터 계정으로 로그인한 상태에서 `main.py`를 실행합니다. 이 코드는 문제 선점를 도와주는 기능을 합니다.
 
-4. 학생 계정으로 로그인한 상태에서 `마스터 보기`를 누르고 `master_crawl.py`를 실행합니다. 이 코드는 마스터 목록을 크롤링하는 기능을 합니다.
+4. 학생 계정으로 로그인한 상태에서 `마스터 보기`를 누르고 `master_crawl.py`를 실행합니다. 이 코드는 마스터 목록을 크롤링하여 `masters.txt`로 반환하는 기능을 합니다.
+
+<br>
 
 ## Step 4. 결과
 코드가 정상적으로 실행된다면, 다음과 같은 파일 트리 구조가 형성될 것입니다:
