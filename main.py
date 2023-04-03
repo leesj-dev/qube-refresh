@@ -25,7 +25,6 @@ desired_capabilities = {
     "deviceName": "Android Emulator",
     "newCommandTimeout": 900,
 }
-
 client = discord.Client(intents=discord.Intents.all())
 driver = webdriver.Remote("http://127.0.0.1:4723/wd/hub", desired_capabilities)
 driver.update_settings({"waitForIdleTimeout": 100})  # click delay 문제 해결용
@@ -35,16 +34,17 @@ logging.basicConfig(
     datefmt="%Y-%m-%d %H:%M:%S",
     level=logging.INFO,
 )
-
-menu = {1: "1Q에 여러 문제 질문",
-        2: "카테고리에 맞지 않은 질문",
-        3: "초중고 교육과정 이외의 질문",
-        4: "문제가 잘 보이지 않음",
-        5: "학습과 무관한 질문",
-        6: "예의 없는 언행, 협박이 포함된 질문",
-        7: "수행평가, 과제 전체 질문",
-        8: "기타",
-        9: "욕설, 음란 등 불쾌감을 주는 질문"}
+menu = {
+    1: "1Q에 여러 문제 질문",
+    2: "카테고리에 맞지 않은 질문",
+    3: "초중고 교육과정 이외의 질문",
+    4: "문제가 잘 보이지 않음",
+    5: "학습과 무관한 질문",
+    6: "예의 없는 언행, 협박이 포함된 질문",
+    7: "수행평가, 과제 전체 질문",
+    8: "기타",
+    9: "욕설, 음란 등 불쾌감을 주는 질문"
+}
 
 
 # 수식이 포함된 텍스트를 이미지로 변환
