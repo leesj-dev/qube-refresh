@@ -77,9 +77,10 @@ USER_ID = (아까 복사한 유저 ID)
 
 ## Step 3. 코드 실행
 1. 본 repo를 Clone한 후, 패키지를 설치합니다.
-* `pip install -r /path/to/requirements.txt`
 
-2. Qube 앱과 Appium Server를 실행합니다.
+   `pip install -r /path/to/requirements.txt`
+
+2. Android 에뮬레이터의 Qube 앱과 Appium Server를 실행합니다.
 
 3. 마스터 계정으로 로그인한 상태에서 `main.py`를 실행합니다. 이 코드는 문제 선점를 도와주는 기능을 합니다.
 
