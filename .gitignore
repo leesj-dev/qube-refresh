@@ -1,5 +1,8 @@
 .env
 run.log
+masters.txt
+test.py
 /images_stu
 /images_tea
 /images_latex
+/__pycache__

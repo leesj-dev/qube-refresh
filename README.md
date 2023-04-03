@@ -72,21 +72,36 @@ USER_ID = (아까 복사한 유저 ID)
 * Message Content Intent
 
 ## Step 3. 코드 실행
-1. Appium의 파이썬 클라이언트를 설치하기 위해 Terminal 혹은 Command Prompt에 아래를 입력합니다.
-* `pip install Appium-Python-Client`
+1. 본 repo를 Clone한 후, 패키지를 설치합니다.
+* `pip install -r /path/to/requirements.txt`
 
-2. Qube 앱과 Appium Server를 실행시킨 채로 `main.py`를 실행합니다.
+2. Qube 앱과 Appium Server를 실행합니다.
 
-3. 코드가 정상적으로 실행된다면, 다음과 같은 파일 트리 구조가 형성될 것입니다:
+3. 마스터 계정으로 로그인한 상태에서 `main.py`를 실행합니다. 이 코드는 문제 선점를 도와주는 기능을 합니다.
+
+4. 학생 계정으로 로그인한 상태에서 `마스터 보기`를 누르고 `master_crawl.py`를 실행합니다. 이 코드는 마스터 목록을 크롤링하는 기능을 합니다.
+
+## Step 4. 결과
+코드가 정상적으로 실행된다면, 다음과 같은 파일 트리 구조가 형성될 것입니다:
 ```
-├── images
+├── images_latex
 │   ├── 2023-01-29 21:29:49-1.png
 │   ├── 2023-01-29 22:22:04-1.png
 │   ├── 2023-01-29 22:22:04-2.png
 │   └── 2023-01-29 22:52:13-1.png
+├── images_stu
+│   ├── 2023-01-29 20:24:39-1.png
+│   ├── 2023-01-29 20:24:39-2.png
+├── images_tea
+│   ├── 2023-01-29 22:39:59-1.png
+│   ├── 2023-01-29 23:23:14-1.png
 ├── .env
 ├── .gitignore
+├── requirements.txt
+├── Pretendard-Regular.otf
 ├── run.log
 ├── README.md
-└── main.py
+├── main.py
+├── master_crawl.py
+└── masters.txt
 ```
