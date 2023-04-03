@@ -303,7 +303,7 @@ class Dropdown(discord.ui.View):
 
     async def on_timeout(self):
         await self.channel.send("Timeout!")
-        print("timeout on button_solve")
+        logging.info("timeout on dropdown")
         self.stop()
 
 
