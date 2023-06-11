@@ -171,7 +171,7 @@ class Button_solve(discord.ui.View):
                 done, pending = await asyncio.wait(events, return_when=asyncio.FIRST_COMPLETED)
                 for future in pending:  # 진행중인 작업 취소
                     future.cancel()
-                if view_finish.value == True:  # 버튼을 눌렀을 경우
+                if view_finish.value is True:  # 버튼을 눌렀을 경우
                     break
 
                 # 텍스트 or 이미지를 보냈을 경우
@@ -216,7 +216,7 @@ class Button_solve(discord.ui.View):
                         view_yn = Button_yn(self.channel)
                         await self.channel.send(embed=discord.Embed(title="수식이 포함된 해당 이미지를 풀이로 보낼까요?"), view=view_yn)
                         await view_yn.wait()
-                        if view_yn.value == True:
+                        if view_yn.value is True:
                             driver.push_file(f"/storage/emulated/0/DCIM/QubeImages/{img_name}", source_path=file_name)
                             send_img(1)
                             logging.info("수식 이미지 전송 완료")
